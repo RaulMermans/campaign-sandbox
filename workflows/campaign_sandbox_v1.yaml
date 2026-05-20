@@ -1,0 +1,84 @@
+id: campaign_sandbox_v1
+name: Campaign Sandbox v1
+mode: deterministic_workflow_with_bounded_llm_stages
+description: >
+  Normalizes a messy campaign brief, generates bounded strategic routes, simulates synthetic audience reactions,
+  scores tradeoffs, requires human selection, and prepares an execution-ready plan.
+nodes:
+  - id: normalize_brief
+    type: llm
+    purpose: Convert messy brief text into a structured NormalizedCampaignBrief.
+    input_schema: RawCampaignBrief
+    output_schema: NormalizedCampaignBrief
+    evals: [campaign_sandbox_capability, campaign_sandbox_trace_contract]
+    guardrails: [do_not_invent_confirmed_facts, preserve_uncertainty, no_success_prediction]
+  - id: extract_strategic_tension
+    type: llm
+    purpose: Identify the central audience, brand, and cultural tension.
+    input_schema: NormalizedCampaignBrief
+    output_schema: StrategicTension
+    evals: [route_quality]
+    guardrails: [avoid_generic_positioning, preserve_constraints]
+  - id: generate_routes
+    type: llm
+    purpose: Generate three distinct campaign routes with roles: safest, boldest, conversion.
+    input_schema: NormalizedCampaignBrief + StrategicTension
+    output_schema: CampaignRoute[]
+    evals: [route_quality]
+    guardrails: [exactly_three_routes, no_fake_research, no_forced_scarcity]
+  - id: build_personas
+    type: llm
+    purpose: Build synthetic personas for simulation only.
+    input_schema: NormalizedCampaignBrief
+    output_schema: Persona[]
+    evals: [simulation_quality]
+    guardrails: [label_synthetic_personas, avoid_sensitive_inference]
+  - id: simulate_reactions
+    type: llm
+    purpose: Simulate likely reactions from synthetic personas across routes.
+    input_schema: CampaignRoute[] + Persona[]
+    output_schema: PersonaSimulation[]
+    evals: [simulation_quality, campaign_sandbox_safety]
+    guardrails: [not_real_market_research, no_exact_probability, include_caveats]
+  - id: score_routes
+    type: deterministic
+    purpose: Apply transparent scoring weights to compare routes.
+    input_schema: CampaignRoute[] + PersonaSimulation[]
+    output_schema: RouteScore[]
+    evals: [campaign_sandbox_trace_contract]
+    guardrails: [label_scores_as_estimates, stable_weights]
+  - id: premortem_review
+    type: llm
+    purpose: Identify failure modes, mitigations, and decision warnings.
+    input_schema: NormalizedCampaignBrief + CampaignRoute[] + RouteScore[]
+    output_schema: PremortemReview
+    evals: [final_plan_quality, campaign_sandbox_safety]
+    guardrails: [surface_uncertainty, no_false_certainty]
+  - id: compare_routes
+    type: deterministic
+    purpose: Build route comparison matrix for human decision.
+    input_schema: CampaignRoute[] + RouteScore[] + PremortemReview
+    output_schema: RouteComparisonMatrix
+    evals: [route_quality]
+    guardrails: [include_tradeoffs, include_caveat]
+  - id: human_selection
+    type: human
+    purpose: Require a human to select a route before final planning.
+    input_schema: RouteComparisonMatrix
+    output_schema: HumanSelection
+    evals: []
+    guardrails: [final_plan_requires_selection]
+  - id: generate_execution_plan
+    type: llm
+    purpose: Turn selected route into assumptions, channels, assets, timeline, metrics, and risks.
+    input_schema: CampaignRun + HumanSelection
+    output_schema: CampaignExecutionPlan
+    evals: [final_plan_quality]
+    guardrails: [include_assumptions, include_risks, no_unapproved_channels]
+  - id: export_artifact
+    type: export
+    purpose: Prepare an exportable campaign artifact.
+    input_schema: CampaignExecutionPlan + TraceEvent[]
+    output_schema: CampaignArtifact
+    evals: [campaign_sandbox_trace_contract]
+    guardrails: [include_disclaimer, no_secret_leakage]

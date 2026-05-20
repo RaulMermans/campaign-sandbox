@@ -1,0 +1,17 @@
+id: campaign_sandbox_trace_contract
+description: Ensures every workflow run emits auditable trace events.
+required_event_fields:
+  - id
+  - runId
+  - stageId
+  - type
+  - status
+  - message
+  - timestamp
+required_stages:
+  - normalize_brief
+  - extract_strategic_tension
+  - generate_routes
+  - simulate_reactions
+  - score_routes
+  - human_selection

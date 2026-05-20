@@ -1,0 +1,11 @@
+id: route_quality
+criteria:
+  distinctiveness:
+    pass: Routes have meaningfully different strategic roles and creative mechanics.
+    fail: Routes are cosmetic variations of the same idea.
+  brand_fit:
+    pass: Routes respect tone, budget, channels, and constraints.
+    fail: Routes ignore brief constraints or add unsupported production needs.
+  usefulness:
+    pass: Each route can support a real decision.
+    fail: Routes read like generic campaign slogans.

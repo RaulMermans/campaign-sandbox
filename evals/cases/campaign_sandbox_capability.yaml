@@ -1,0 +1,15 @@
+id: campaign_sandbox_capability
+description: Checks that a messy campaign brief becomes a complete strategic run.
+input_fixture: evals/fixtures/nodo_messy_brief.txt
+must_include:
+  - normalized_brief
+  - strategic_tension
+  - exactly_three_routes
+  - persona_simulation
+  - route_scores
+  - premortem
+  - comparison_matrix
+  - execution_plan_after_selection
+pass_fail:
+  pass: All required sections are present and grounded in the input brief.
+  fail: Missing sections, invented confirmed facts, or generic campaign output.

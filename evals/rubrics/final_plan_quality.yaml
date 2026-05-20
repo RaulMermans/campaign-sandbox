@@ -1,0 +1,11 @@
+id: final_plan_quality
+criteria:
+  completeness:
+    pass: Plan includes assumptions, risks, channels, assets, timeline, metrics, copy, and next actions.
+    fail: Plan is missing required planning sections.
+  executability:
+    pass: Plan can guide creative production without extra strategic translation.
+    fail: Plan remains abstract.
+  constraint_fit:
+    pass: Plan respects budget, tone, timing, and channel constraints.
+    fail: Plan requires unavailable budget, tech, or production scope.

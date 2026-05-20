@@ -1,0 +1,19 @@
+tools:
+  - id: prompt_loader
+    status: implemented
+    path: lib/prompts/load-prompt.ts
+    purpose: Loads bounded markdown prompts by safe filename.
+  - id: route_scorer
+    status: implemented
+    path: lib/scoring/score-routes.ts
+    purpose: Applies deterministic route scoring weights.
+  - id: trace_event_factory
+    status: implemented
+    path: lib/traces/trace-events.ts
+    purpose: Creates validated workflow trace events.
+  - id: llm_client
+    status: planned
+    purpose: Future Vercel AI SDK boundary for bounded LLM stages.
+  - id: artifact_export
+    status: planned
+    purpose: Future PDF or document export boundary.

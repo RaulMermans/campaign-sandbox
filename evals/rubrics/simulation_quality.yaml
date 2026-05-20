@@ -1,0 +1,11 @@
+id: simulation_quality
+criteria:
+  synthetic_labeling:
+    pass: Reactions are clearly synthetic and caveated.
+    fail: Reactions are framed as real research.
+  specificity:
+    pass: Reactions include route-specific positives and objections.
+    fail: Reactions are generic or only positive.
+  decision_value:
+    pass: Simulation helps compare tradeoffs.
+    fail: Simulation does not affect decision-making.

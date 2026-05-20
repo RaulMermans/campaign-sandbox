@@ -1,0 +1,26 @@
+agents:
+  - id: workflow_orchestrator
+    type: deterministic
+    purpose: Coordinates the bounded campaign workflow and validates schema boundaries.
+    owns:
+      - lib/workflow
+      - workflows
+  - id: strategy_llm_stage
+    type: bounded_llm
+    purpose: Produces structured strategic language for approved workflow nodes.
+    owns:
+      - prompts
+    constraints:
+      - must_validate_zod_output
+      - must_emit_trace_events
+      - must_preserve_uncertainty
+  - id: evaluator
+    type: deterministic
+    purpose: Runs eval cases and rubric checks against workflow output.
+    owns:
+      - evals
+  - id: artifact_exporter
+    type: deterministic
+    purpose: Packages selected plans into exportable artifacts.
+    owns:
+      - future_export_boundary
