@@ -2,30 +2,36 @@
   "name": "campaign-sandbox",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=20.9.0",
+    "pnpm": ">=10.0.0 <11"
+  },
   "scripts": {
-    "dev": "next dev",
+    "dev": "PATH=/usr/local/bin:$PATH next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "node scripts/tsc-noemit.cjs"
+    "lint": "PATH=/usr/local/bin:$PATH node scripts/lint.mjs",
+    "test": "PATH=/usr/local/bin:$PATH vitest run",
+    "test:watch": "PATH=/usr/local/bin:$PATH vitest",
+    "typecheck": "PATH=/usr/local/bin:$PATH tsc -p tsconfig.typecheck.json --noEmit --pretty false",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test"
   },
   "dependencies": {
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "zod": "^3.25.76"
+    "zod": "3.19.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "20.11.30",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
+    "eslint": "9.17.0",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "typescript": "5.8.3",
-    "vitest": "^4.1.6"
+    "typescript": "5.4.5",
+    "vitest": "0.34.6"
   }
 }

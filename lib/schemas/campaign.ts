@@ -1,12 +1,15 @@
 import { z } from "zod";
 
 const boundedScoreSchema = z.number().min(1).max(5);
+const isoDateTimeSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+  message: "Invalid datetime",
+});
 
 export const rawCampaignBriefSchema = z
   .object({
     text: z.string().min(20),
     source: z.enum(["paste", "fixture", "import"]).default("paste"),
-    receivedAt: z.string().datetime().optional(),
+    receivedAt: isoDateTimeSchema.optional(),
   })
   .strict();
 

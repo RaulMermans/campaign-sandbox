@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+const isoDateTimeSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+  message: "Invalid datetime",
+});
+
 export const traceEventSchema = z
   .object({
     id: z.string().min(1),
@@ -14,7 +18,7 @@ export const traceEventSchema = z
     ]),
     status: z.enum(["pending", "running", "completed", "failed"]),
     message: z.string().min(1),
-    timestamp: z.string().datetime(),
+    timestamp: isoDateTimeSchema,
     durationMs: z.number().nonnegative().optional(),
     inputSchema: z.string().optional(),
     outputSchema: z.string().optional(),

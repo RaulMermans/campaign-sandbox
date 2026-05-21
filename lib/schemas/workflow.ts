@@ -13,6 +13,10 @@ import {
 } from "./campaign";
 import { traceEventSchema } from "./trace";
 
+const isoDateTimeSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+  message: "Invalid datetime",
+});
+
 export const workflowNodeSchema = z
   .object({
     id: z.string().min(1),
@@ -30,7 +34,7 @@ export const humanSelectionSchema = z
     selectedRouteId: z.string().min(1),
     selectedBy: z.string().min(1),
     rationale: z.string().min(1),
-    selectedAt: z.string().datetime(),
+    selectedAt: isoDateTimeSchema,
   })
   .strict();
 
@@ -38,8 +42,8 @@ export const campaignRunSchema = z
   .object({
     id: z.string().min(1),
     status: z.enum(["draft", "running", "awaiting_selection", "completed", "failed"]),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: isoDateTimeSchema,
+    updatedAt: isoDateTimeSchema,
     rawBrief: rawCampaignBriefSchema,
     normalizedBrief: normalizedCampaignBriefSchema,
     strategicTension: strategicTensionSchema,

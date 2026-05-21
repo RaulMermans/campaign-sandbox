@@ -17,6 +17,8 @@ This is not an AI campaign generator. It is a workflow for creative teams making
 
 ## Getting Started
 
+Use Node 22 or newer. This repo pins pnpm in `package.json`.
+
 ```bash
 pnpm install
 pnpm dev
@@ -24,12 +26,43 @@ pnpm dev
 
 Open `http://localhost:3000`.
 
+If port 3000 is already in use:
+
+```bash
+pnpm dev -- -p 3001
+```
+
 ## Verification
 
 ```bash
+pnpm verify
+```
+
+`pnpm verify` runs `pnpm typecheck && pnpm lint && pnpm test`.
+
+For individual checks:
+
+```bash
 pnpm typecheck
-pnpm test
 pnpm lint
+pnpm test
+```
+
+## Local Troubleshooting
+
+Use the pinned package manager from `package.json`:
+
+```bash
+corepack enable
+corepack pnpm install
+```
+
+If local install or dev state looks stale, clear generated state and reinstall:
+
+```bash
+rm -rf node_modules .next
+pnpm install
+pnpm verify
 ```
 
 ## What Is Mocked

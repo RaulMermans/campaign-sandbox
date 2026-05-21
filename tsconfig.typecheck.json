@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2017"]
+  },
+  "include": [
+    "lib/**/*.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "next-env.d.ts",
+    "next.config.ts"
+  ]
+}
