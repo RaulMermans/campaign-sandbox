@@ -19,7 +19,9 @@ export function CampaignRouteCard({ route, score }: { route: CampaignRoute; scor
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Sample copy</p>
           <ul className="grid gap-1">
             {route.sampleCopy.map((copy) => (
-              <li key={copy}>"{copy}"</li>
+              <li key={copy}>
+                <q>{copy}</q>
+              </li>
             ))}
           </ul>
         </div>

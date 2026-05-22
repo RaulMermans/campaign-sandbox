@@ -9,7 +9,7 @@ import { PersonaSimulationPanel } from "@/components/simulation/persona-simulati
 import { TraceTimeline } from "@/components/trace/trace-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CampaignRun } from "@/lib/schemas/workflow";
-import { NODO_SAMPLE_BRIEF } from "@/lib/workflow/mock-campaign-run";
+import { buildMockCompletedCampaignRun, NODO_SAMPLE_BRIEF } from "@/lib/workflow/mock-campaign-run";
 import { runCampaignWorkflow } from "@/lib/workflow/run-campaign-workflow";
 
 export default function Home() {
@@ -39,7 +39,8 @@ export default function Home() {
             tradeoffs before committing to a plan.
           </p>
           <p className="mt-5 max-w-xl text-sm leading-6 text-stone-600">
-            Demo mode uses deterministic mock outputs. No API keys, database, or real LLM calls are required.
+            Demo mode currently uses mocked strategy outputs. Custom LLM analysis comes next. No API keys, database, or
+            real LLM calls are required.
           </p>
         </div>
 
@@ -59,14 +60,19 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          {run ? <CampaignRunResult run={run} /> : null}
+          {run ? (
+            <CampaignRunResult
+              run={run}
+              onSelectRoute={(routeId) => setRun(buildMockCompletedCampaignRun(routeId, run.rawBrief.text))}
+            />
+          ) : null}
         </div>
       </section>
     </main>
   );
 }
 
-function CampaignRunResult({ run }: { run: CampaignRun }) {
+function CampaignRunResult({ run, onSelectRoute }: { run: CampaignRun; onSelectRoute: (routeId: string) => void }) {
   return (
     <section className="grid gap-6">
       <p className="rounded-lg border border-stone-300 bg-white p-4 text-sm leading-6 text-stone-700">
@@ -84,6 +90,42 @@ function CampaignRunResult({ run }: { run: CampaignRun }) {
       </div>
       <PersonaSimulationPanel personas={run.personas} simulations={run.simulations} routes={run.routes} />
       <RouteComparisonTable matrix={run.comparisonMatrix} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Human Route Selection</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 text-sm leading-6 text-stone-700">
+          {run.humanSelection ? (
+            <>
+              <p>
+                Mock creative lead selected{" "}
+                <span className="font-medium text-stone-950">{run.executionPlan?.selectedRouteName}</span> before
+                generating the execution plan.
+              </p>
+              <p className="text-stone-500">{run.humanSelection.rationale}</p>
+            </>
+          ) : (
+            <>
+              <p>
+                This run is awaiting explicit human selection. The execution plan is intentionally blocked until a
+                route is selected.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {run.routes.map((route) => (
+                  <button
+                    key={route.id}
+                    type="button"
+                    onClick={() => onSelectRoute(route.id)}
+                    className="rounded-md border border-stone-300 bg-white px-3 py-2 font-medium text-stone-950 hover:bg-stone-100"
+                  >
+                    Select {route.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Pre-mortem Risk Review</CardTitle>
@@ -126,7 +168,16 @@ function CampaignRunResult({ run }: { run: CampaignRun }) {
             </div>
           </CardContent>
         </Card>
-      ) : null}
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Execution Plan</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm leading-6 text-stone-700">
+            No execution plan yet. Human route selection is required before final plan generation.
+          </CardContent>
+        </Card>
+      )}
       <TraceTimeline events={run.traceEvents} />
     </section>
   );

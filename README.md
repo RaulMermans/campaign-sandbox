@@ -17,7 +17,7 @@ This is not an AI campaign generator. It is a workflow for creative teams making
 
 ## Getting Started
 
-Use Node 22 or newer. This repo pins pnpm in `package.json`.
+Use Node 22 LTS. This repo pins pnpm in `package.json`.
 
 ```bash
 pnpm install
@@ -44,6 +44,7 @@ For individual checks:
 
 ```bash
 pnpm typecheck
+pnpm typecheck:core
 pnpm lint
 pnpm test
 ```
@@ -57,17 +58,11 @@ corepack enable
 corepack pnpm install
 ```
 
-If local install or dev state looks stale, clear generated state and reinstall:
-
-```bash
-rm -rf node_modules .next
-pnpm install
-pnpm verify
-```
+If local install or dev state looks stale, reinstall with `pnpm install` and rerun `pnpm verify`.
 
 ## What Is Mocked
 
-V1 has no real LLM calls, API keys, database, auth, billing, or persistence. `lib/workflow/mock-campaign-run.ts` returns a deterministic NODO campaign run so the UI, schemas, scoring, trace events, docs, and tests can work immediately.
+V1 has no real LLM calls, API keys, database, auth, billing, or persistence. `lib/workflow/mock-campaign-run.ts` returns deterministic NODO campaign states so the UI, schemas, scoring, trace events, docs, and tests can work immediately. The default mock state awaits human route selection; the completed mock state is built only after an explicit selected route is supplied.
 
 ## Project Structure
 
@@ -86,6 +81,5 @@ V1 has no real LLM calls, API keys, database, auth, billing, or persistence. `li
 
 - Add real bounded LLM stage execution behind the current schemas.
 - Add persisted campaign runs in Supabase/Postgres.
-- Add human route selection UI state.
 - Add exportable artifacts.
 - Add Trigger.dev orchestration when background execution is needed.
