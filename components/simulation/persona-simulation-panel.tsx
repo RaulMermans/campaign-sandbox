@@ -24,7 +24,9 @@ export function PersonaSimulationPanel({
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
                 {persona?.name} on {route?.name}
               </p>
-              <p className="mt-3 text-sm font-medium leading-6 text-stone-950">"{simulation.quotedReaction}"</p>
+              <p className="mt-3 text-sm font-medium leading-6 text-stone-950">
+                <q>{simulation.quotedReaction}</q>
+              </p>
               <p className="mt-3 text-sm leading-6 text-stone-700">{simulation.likelyReaction}</p>
               <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-stone-600">
                 <Metric label="Res" value={simulation.resonanceScore} />

@@ -15,6 +15,9 @@ export default async function RunPage({ params }: { params: Promise<{ runId: str
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">Run {runId}</p>
           <h1 className="mt-3 text-4xl font-semibold">Campaign Sandbox Result</h1>
+          <p className="mt-3 text-sm leading-6 text-stone-600">
+            This mock run is awaiting human route selection, so no execution plan is generated yet.
+          </p>
         </div>
         <p className="rounded-lg border border-stone-300 bg-white p-4 text-sm leading-6 text-stone-700">
           {run.disclaimer}

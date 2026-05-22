@@ -11,6 +11,7 @@ export const traceEventSchema = z
     stageId: z.string().min(1),
     type: z.enum([
       "workflow.started",
+      "stage.pending",
       "stage.started",
       "stage.completed",
       "stage.failed",
@@ -22,6 +23,13 @@ export const traceEventSchema = z
     durationMs: z.number().nonnegative().optional(),
     inputSchema: z.string().optional(),
     outputSchema: z.string().optional(),
+    provider: z.string().optional(),
+    model: z.string().optional(),
+    promptVersion: z.string().optional(),
+    inputTokens: z.number().int().nonnegative().optional(),
+    outputTokens: z.number().int().nonnegative().optional(),
+    costUsd: z.number().nonnegative().optional(),
+    evalIds: z.array(z.string().min(1)).optional(),
     metadata: z.record(z.string(), z.unknown()).default({}),
   })
   .strict();

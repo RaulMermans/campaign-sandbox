@@ -262,43 +262,92 @@ function buildComparisonMatrix(scores: ReturnType<typeof scoreRoutes>): RouteCom
   };
 }
 
-const executionPlan: CampaignExecutionPlan = {
-  selectedRouteId: "route-quiet-itinerary",
-  selectedRouteName: "Quiet Itinerary",
-  assumptions: ["Capsule name resolves by production week", "Pop-up remains optional", "Shoot budget stays below EUR7k"],
-  objectives: ["Sell capsule", "Grow email list", "Increase cultural relevance without hype language"],
-  channelPlan: [
-    { channel: "Instagram", role: "Primary visual storytelling and launch traffic", cadence: "4 teasers, 5 launch posts, 6 follow-ups" },
-    { channel: "Email", role: "Early access, edit framing, conversion", cadence: "Teaser, launch, last-call, post-launch story" },
-    { channel: "TikTok", role: "Lightweight detail and movement clips", cadence: "3 restrained edits if assets are strong" },
-  ],
-  assetList: ["hero editorial stills", "route detail reels", "email header set", "product edit tiles", "pop-up poster template"],
-  timeline: [
-    { phase: "Teaser", timing: "T-14 to T-1", actions: ["Name reveal", "detail crops", "email waitlist"] },
-    { phase: "Launch", timing: "Launch week", actions: ["Hero story", "product edits", "email early access", "route comparison for internal team"] },
-    { phase: "Follow-up", timing: "T+7 to T+21", actions: ["styling proof", "customer saves", "pop-up or city note content"] },
-  ],
-  metrics: ["sell-through by product", "email signup conversion", "Instagram saves", "site sessions from social", "pop-up RSVP if confirmed"],
-  risks: ["Visual subtlety may underperform", "Timeline delay may reduce teaser runway", "Pop-up uncertainty may confuse calls to action"],
-  copyExamples: ["For days with more than one place in them.", "A quiet uniform for temporary coordinates."],
-  nextActions: ["Confirm capsule name", "Lock pop-up decision", "Create shot list", "Define email signup incentive"],
-};
+function buildExecutionPlan(selectedRouteId: string): CampaignExecutionPlan {
+  const selectedRoute = routes.find((route) => route.id === selectedRouteId) ?? routes[0];
+
+  return {
+    selectedRouteId: selectedRoute.id,
+    selectedRouteName: selectedRoute.name,
+    assumptions: ["Capsule name resolves by production week", "Pop-up remains optional", "Shoot budget stays below EUR7k"],
+    objectives: ["Sell capsule", "Grow email list", "Increase cultural relevance without hype language"],
+    channelPlan: [
+      { channel: "Instagram", role: "Primary visual storytelling and launch traffic", cadence: "4 teasers, 5 launch posts, 6 follow-ups" },
+      { channel: "Email", role: "Early access, edit framing, conversion", cadence: "Teaser, launch, last-call, post-launch story" },
+      { channel: "TikTok", role: "Lightweight detail and movement clips", cadence: "3 restrained edits if assets are strong" },
+    ],
+    assetList: ["hero editorial stills", "route detail reels", "email header set", "product edit tiles", "pop-up poster template"],
+    timeline: [
+      { phase: "Teaser", timing: "T-14 to T-1", actions: ["Name reveal", "detail crops", "email waitlist"] },
+      { phase: "Launch", timing: "Launch week", actions: ["Hero story", "product edits", "email early access", "route comparison for internal team"] },
+      { phase: "Follow-up", timing: "T+7 to T+21", actions: ["styling proof", "customer saves", "pop-up or city note content"] },
+    ],
+    metrics: ["sell-through by product", "email signup conversion", "Instagram saves", "site sessions from social", "pop-up RSVP if confirmed"],
+    risks: ["Visual subtlety may underperform", "Timeline delay may reduce teaser runway", "Pop-up uncertainty may confuse calls to action"],
+    copyExamples: ["For days with more than one place in them.", "A quiet uniform for temporary coordinates."],
+    nextActions: ["Confirm capsule name", "Lock pop-up decision", "Create shot list", "Define email signup incentive"],
+  };
+}
+
+function buildTraceEvents(runId: string, status: "awaiting_selection" | "completed") {
+  const completedBeforeSelection = [
+    createTraceEvent({ runId, stageId: "workflow", type: "workflow.started", status: "running", message: "Campaign workflow started." }),
+    createTraceEvent({ runId, stageId: "normalize_brief", type: "stage.completed", status: "completed", message: "Messy brief normalized.", outputSchema: "NormalizedCampaignBrief", durationMs: 120 }),
+    createTraceEvent({ runId, stageId: "extract_strategic_tension", type: "stage.completed", status: "completed", message: "Strategic tension extracted.", outputSchema: "StrategicTension", durationMs: 80 }),
+    createTraceEvent({ runId, stageId: "generate_routes", type: "stage.completed", status: "completed", message: "Three campaign routes generated.", outputSchema: "CampaignRoute[]", durationMs: 140 }),
+    createTraceEvent({ runId, stageId: "build_personas", type: "stage.completed", status: "completed", message: "Synthetic personas built for simulation only.", outputSchema: "Persona[]", durationMs: 90 }),
+    createTraceEvent({ runId, stageId: "simulate_reactions", type: "stage.completed", status: "completed", message: "Synthetic audience reactions simulated.", outputSchema: "PersonaSimulation[]", durationMs: 160 }),
+    createTraceEvent({ runId, stageId: "score_routes", type: "stage.completed", status: "completed", message: "Routes scored as strategic estimates.", outputSchema: "RouteScore[]", durationMs: 40 }),
+    createTraceEvent({ runId, stageId: "premortem_review", type: "stage.completed", status: "completed", message: "Pre-mortem risks and mitigations reviewed.", outputSchema: "PremortemReview", durationMs: 110 }),
+    createTraceEvent({ runId, stageId: "compare_routes", type: "stage.completed", status: "completed", message: "Comparison matrix prepared for human route selection.", outputSchema: "RouteComparisonMatrix", durationMs: 35 }),
+  ];
+
+  if (status === "awaiting_selection") {
+    return [
+      ...completedBeforeSelection,
+      createTraceEvent({ runId, stageId: "human_selection", type: "stage.pending", status: "pending", message: "Awaiting explicit human route selection.", inputSchema: "RouteComparisonMatrix", outputSchema: "HumanSelection" }),
+      createTraceEvent({ runId, stageId: "generate_execution_plan", type: "stage.pending", status: "pending", message: "Execution plan is blocked until a human selects a route.", inputSchema: "CampaignRun + HumanSelection", outputSchema: "CampaignExecutionPlan" }),
+      createTraceEvent({ runId, stageId: "export_artifact", type: "stage.pending", status: "pending", message: "Artifact export boundary is blocked until an execution plan exists.", inputSchema: "CampaignExecutionPlan + TraceEvent[]", outputSchema: "CampaignArtifact" }),
+    ];
+  }
+
+  return [
+    ...completedBeforeSelection,
+    createTraceEvent({ runId, stageId: "human_selection", type: "stage.completed", status: "completed", message: "Mock human selection explicitly applied for demo.", outputSchema: "HumanSelection", durationMs: 10 }),
+    createTraceEvent({ runId, stageId: "generate_execution_plan", type: "stage.completed", status: "completed", message: "Execution plan generated from selected route.", outputSchema: "CampaignExecutionPlan", durationMs: 130 }),
+    createTraceEvent({ runId, stageId: "export_artifact", type: "stage.completed", status: "completed", message: "Export artifact boundary prepared; no PDF export is generated in demo mode.", outputSchema: "CampaignArtifact", durationMs: 20 }),
+    createTraceEvent({ runId, stageId: "workflow", type: "workflow.completed", status: "completed", message: "Campaign workflow completed after human selection.", durationMs: 895 }),
+  ];
+}
 
 export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRun {
   const now = new Date().toISOString();
   const runId = "mock-nodo-run";
   const scores = scoreRoutes(routes, simulations);
 
-  const traceEvents = [
-    createTraceEvent({ runId, stageId: "workflow", type: "workflow.started", status: "running", message: "Campaign workflow started." }),
-    createTraceEvent({ runId, stageId: "normalize_brief", type: "stage.completed", status: "completed", message: "Messy brief normalized.", outputSchema: "NormalizedCampaignBrief", durationMs: 120 }),
-    createTraceEvent({ runId, stageId: "extract_strategic_tension", type: "stage.completed", status: "completed", message: "Strategic tension extracted.", outputSchema: "StrategicTension", durationMs: 80 }),
-    createTraceEvent({ runId, stageId: "generate_routes", type: "stage.completed", status: "completed", message: "Three campaign routes generated.", outputSchema: "CampaignRoute[]", durationMs: 140 }),
-    createTraceEvent({ runId, stageId: "simulate_reactions", type: "stage.completed", status: "completed", message: "Synthetic audience reactions simulated.", outputSchema: "PersonaSimulation[]", durationMs: 160 }),
-    createTraceEvent({ runId, stageId: "score_routes", type: "stage.completed", status: "completed", message: "Routes scored as strategic estimates.", outputSchema: "RouteScore[]", durationMs: 40 }),
-    createTraceEvent({ runId, stageId: "human_selection", type: "stage.completed", status: "completed", message: "Mock human selection applied for demo.", durationMs: 10 }),
-    createTraceEvent({ runId, stageId: "workflow", type: "workflow.completed", status: "completed", message: "Campaign workflow completed.", durationMs: 650 }),
-  ];
+  return {
+    id: runId,
+    status: "awaiting_selection",
+    createdAt: now,
+    updatedAt: now,
+    rawBrief: { text: messyBrief, source: "paste", receivedAt: now },
+    normalizedBrief,
+    strategicTension,
+    routes,
+    personas,
+    simulations,
+    scores,
+    premortem,
+    comparisonMatrix: buildComparisonMatrix(scores),
+    traceEvents: buildTraceEvents(runId, "awaiting_selection"),
+    disclaimer:
+      "Demo mode currently uses mocked strategy outputs. Synthetic persona reactions and route scores are strategic estimates for decision support, not real market research or success predictions.",
+  };
+}
+
+export function buildMockCompletedCampaignRun(selectedRouteId = "route-quiet-itinerary", messyBrief = NODO_SAMPLE_BRIEF): CampaignRun {
+  const now = new Date().toISOString();
+  const runId = "mock-nodo-run";
+  const scores = scoreRoutes(routes, simulations);
 
   return {
     id: runId,
@@ -315,14 +364,14 @@ export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRu
     premortem,
     comparisonMatrix: buildComparisonMatrix(scores),
     humanSelection: {
-      selectedRouteId: "route-quiet-itinerary",
+      selectedRouteId,
       selectedBy: "mock_creative_lead",
-      rationale: "Safest base route with enough room to borrow bold elements.",
+      rationale: "Explicit demo selection by the creative lead before final plan generation.",
       selectedAt: now,
     },
-    executionPlan,
-    traceEvents,
+    executionPlan: buildExecutionPlan(selectedRouteId),
+    traceEvents: buildTraceEvents(runId, "completed"),
     disclaimer:
-      "Synthetic persona reactions and route scores are strategic estimates for decision support, not real market research or success predictions.",
+      "Demo mode currently uses mocked strategy outputs. Synthetic persona reactions and route scores are strategic estimates for decision support, not real market research or success predictions.",
   };
 }
