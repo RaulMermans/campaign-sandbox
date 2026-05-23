@@ -28,7 +28,7 @@ Tone: intelligent, intimate, slightly dry, not Gen Z slang, no "join the movemen
 
 Need: 3 campaign directions, which one is safest / boldest / most likely to convert, audience reaction simulation, risks, channel plan, asset list, launch timeline, maybe some copy examples.`;
 
-const normalizedBrief: NormalizedCampaignBrief = {
+export const normalizedBrief: NormalizedCampaignBrief = {
   brandName: "NODO",
   brandDescription:
     "Independent fashion and lifestyle brand between Madrid and Lisbon, positioned as premium daily uniform rather than luxury.",

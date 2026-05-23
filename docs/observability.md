@@ -2,6 +2,45 @@
 
 Every workflow stage emits trace events so users can inspect what happened, where a decision came from, and which stage produced each output.
 
-Trace events include run ID, stage ID, event type, status, message, timestamp, duration, schemas, and metadata. This supports debugging, eval review, safety audits, and later replay.
+## Trace event fields
+
+All trace events include:
+
+- `id` — unique event ID
+- `runId` — campaign run ID
+- `stageId` — which stage produced the event
+- `type` — lifecycle event type (`workflow.started`, `stage.started`, `stage.completed`, `stage.failed`, etc.)
+- `status` — current stage status (`pending`, `running`, `completed`, `failed`)
+- `message` — human-readable description
+- `timestamp` — ISO 8601 datetime
+- `durationMs` — stage execution time (optional)
+- `inputSchema` / `outputSchema` — named schema types for the stage
+
+## LLM telemetry fields
+
+When a stage uses a real LLM provider, these additional fields are included:
+
+| Field | Description |
+|---|---|
+| `provider` | Provider name: `"mock"` or `"openai"` |
+| `model` | Model ID used, e.g. `"gpt-4.1-mini"` or `"mock-normalizer"` |
+| `promptVersion` | Prompt file and version, e.g. `"normalize_brief.v1"` |
+| `inputTokens` | Tokens in the prompt (undefined if unavailable) |
+| `outputTokens` | Tokens in the response (undefined if unavailable) |
+| `costUsd` | Estimated cost (0 for mock; undefined if not provided by API) |
+
+Mock provider always sets `costUsd: 0` and uses `model: "mock-normalizer"`. Token counts are `undefined` in mock mode.
+
+## What is not logged
+
+- API keys or auth credentials
+- Raw provider response objects containing metadata
+- Full brief text in production telemetry (briefs stay in stage input/output schemas only)
+
+## Current storage
 
 V1 stores trace events in mock run objects only. Later versions should persist them with campaign runs.
+
+## Stage-by-stage status
+
+Only `normalize_brief` can emit real LLM telemetry (when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`). All other stages emit mock trace events with fixed timestamps and durations.

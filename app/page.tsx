@@ -39,8 +39,11 @@ export default function Home() {
             tradeoffs before committing to a plan.
           </p>
           <p className="mt-5 max-w-xl text-sm leading-6 text-stone-600">
-            Demo mode currently uses mocked strategy outputs. Custom LLM analysis comes next. No API keys, database, or
-            real LLM calls are required.
+            Demo mode uses mocked strategy outputs. Real brief normalization can be enabled server-side via{" "}
+            <code className="rounded bg-stone-200 px-1 py-0.5 font-mono text-xs">
+              CAMPAIGN_SANDBOX_LLM_PROVIDER=openai
+            </code>
+            . Later workflow stages remain mocked.
           </p>
         </div>
 

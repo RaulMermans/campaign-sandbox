@@ -25,5 +25,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify
-        run: pnpm verify
+      - name: Verify (typecheck + lint + test + build)
+        run: pnpm verify:full
+        env:
+          # Build with mock provider — no API key required.
+          CAMPAIGN_SANDBOX_LLM_PROVIDER: mock
