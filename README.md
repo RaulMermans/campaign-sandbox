@@ -20,6 +20,7 @@ This is not an AI campaign generator. It is a workflow for creative teams making
 Use Node 22 LTS. This repo pins pnpm in `package.json`.
 
 ```bash
+corepack enable
 pnpm install
 pnpm dev
 ```
@@ -58,7 +59,20 @@ corepack enable
 corepack pnpm install
 ```
 
-If local install or dev state looks stale, reinstall with `pnpm install` and rerun `pnpm verify`.
+If local install or dev state looks stale, clear generated state and reinstall:
+
+```bash
+rm -rf node_modules .next
+corepack enable
+pnpm install
+pnpm verify
+```
+
+If port 3000 is already in use during local verification, run:
+
+```bash
+pnpm dev -- -p 3001
+```
 
 ## What Is Mocked
 
