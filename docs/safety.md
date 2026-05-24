@@ -12,7 +12,7 @@ Campaign Sandbox is decision support, not real market research.
 
 ## LLM stage rules
 
-These rules apply to all real LLM stages, starting with `normalize_brief`:
+These rules apply to all real LLM stages (`normalize_brief`, `extract_strategic_tension`, and future stages):
 
 - Prompts must instruct the model to preserve uncertainty as open questions, not convert it to fabricated certainty.
 - Prompts must not request probability claims or market predictions.
@@ -28,13 +28,21 @@ These rules apply to all real LLM stages, starting with `normalize_brief`:
 
 ## What remains synthetic
 
-Even when `normalize_brief` uses a real provider:
+Even when `normalize_brief` and `extract_strategic_tension` use a real provider:
 
-- All subsequent stages remain mocked.
+- All stages after `extract_strategic_tension` remain mocked.
+- `extract_strategic_tension` is strategic interpretation, not audience research. It does not use real market data.
 - Persona reactions are synthetic, not real audience research.
 - Route scores are strategic estimates from deterministic scoring logic.
 - The pre-mortem and comparison matrix are generated from mock data.
 - The execution plan is built from mock routes and scores.
+
+## `extract_strategic_tension` safety rules
+
+- The stage consumes validated `NormalizedCampaignBrief` objects only — never raw brief text.
+- The prompt explicitly prohibits inventing market research or making probability claims.
+- Output is validated with `strategicTensionSchema` before returning. Unvalidated output never reaches callers.
+- The tension is strategic interpretation of the brief only, not a prediction of campaign performance.
 
 ## Future LLM integrations
 

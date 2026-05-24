@@ -63,7 +63,7 @@ export const normalizedBrief: NormalizedCampaignBrief = {
   openQuestions: ["Final capsule name", "Pop-up location", "Production delay tolerance", "Email signup incentive"],
 };
 
-const strategicTension: StrategicTension = {
+export const strategicTension: StrategicTension = {
   coreTension:
     "NODO wants the energy of movement without looking like a travel brand or using streetwear scarcity codes.",
   audienceInsight:

@@ -9,7 +9,7 @@ Deterministic code owns orchestration, schema validation, scoring weights, trace
 | Stage | Status | Provider |
 |---|---|---|
 | `normalize_brief` | **Real (optional)** | `mock` (default) or `openai` |
-| `extract_strategic_tension` | Mocked | — |
+| `extract_strategic_tension` | **Real (optional)** | `mock` (default) or `openai` |
 | `generate_routes` | Mocked | — |
 | `build_personas` | Mocked | — |
 | `simulate_reactions` | Mocked | — |
@@ -27,9 +27,20 @@ Real LLM code runs exclusively server-side:
 - `lib/env.ts` — reads provider config and API keys. Never imported in client components.
 - `lib/llm/` — provider adapter and `generateJson()` helper. Server-side only.
 - `lib/workflow/stages/` — individual bounded LLM stage functions. Server-side only.
-- `app/api/campaign/*/route.ts` — API routes that call stage functions.
+- `app/api/campaign/normalize/route.ts` — normalization API endpoint.
+- `app/api/campaign/tension/route.ts` — strategic tension API endpoint. Consumes validated normalized briefs only.
 
 Client components call API routes, not stage functions directly. The mock workflow (`lib/workflow/run-campaign-workflow.ts`) remains client-safe and uses no server-only imports.
+
+## `extract_strategic_tension` stage notes
+
+- Server-side only. Never exposed to the browser.
+- Consumes a validated `NormalizedCampaignBrief` object — it does not accept raw messy brief text.
+- Does not use real market data or audience research.
+- Does not produce predictions or probability claims.
+- Output is strategic interpretation based only on the normalized brief.
+- Validates output with `strategicTensionSchema` before returning.
+- Retries once on JSON parse or schema validation failure.
 
 ## Provider adapter
 
@@ -51,3 +62,7 @@ All stage outputs are validated with Zod schemas in `lib/schemas/campaign.ts`. U
 ## For v1, no database, auth, or persistence.
 
 Later integrations should follow the same server boundary pattern: new stage function → new API route → validated schema → trace event → tests.
+
+## Next stage
+
+The next real stage to implement is `generate_campaign_routes`, following the same pattern. Only implement after `extract_strategic_tension` passes `verify:full`.
