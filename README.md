@@ -58,7 +58,7 @@ See [docs/deployment.md](docs/deployment.md) for full instructions.
 2. Import repository in Vercel.
 3. Deploy without setting any environment variables.
 
-**Enable real brief normalization:**
+**Enable real brief normalization and tension extraction:**
 
 Set these in Vercel → Project → Settings → Environment Variables:
 
@@ -67,7 +67,7 @@ CAMPAIGN_SANDBOX_LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
 ```
 
-Only `normalize_brief` uses the real provider. All later stages remain mocked. See [docs/deployment.md](docs/deployment.md) for the full variable list and safety notes.
+Only `normalize_brief` and `extract_strategic_tension` use the real provider. All later stages remain mocked. See [docs/deployment.md](docs/deployment.md) for the full variable list, safety notes, and how to test both stages locally.
 
 ## Environment variables
 
@@ -79,21 +79,23 @@ cp .env.example .env.local
 
 The app builds and runs with no env vars set (defaults to mock mode). See `.env.example` for all available variables.
 
-## What Is Mocked
-
-Most stages are still mocked in v1. The `normalize_brief` stage can optionally use a real OpenAI provider when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` is set server-side. All other stages return deterministic NODO campaign states.
+## Stage Status
 
 | Stage | Status |
 |---|---|
 | `normalize_brief` | **Real (optional)** via server-side env |
-| All other stages | Mocked |
+| `extract_strategic_tension` | **Real (optional)** via server-side env |
+| All later stages | Mocked |
 
-Synthetic persona reactions and route scores are strategic estimates for decision support, not real market research or success predictions.
+Both real stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. The app builds and runs fully without any env vars (mock mode).
+
+`extract_strategic_tension` is strategic interpretation only — it does not use real market data or produce predictions. Synthetic persona reactions and route scores are strategic estimates for decision support, not real market research or success predictions.
 
 ## Project Structure
 
 - `app/` — Next.js routes and API endpoints.
 - `app/api/campaign/normalize/` — Server-side normalization API route.
+- `app/api/campaign/tension/` — Server-side strategic tension API route.
 - `components/` — UI, brief, route, simulation, and trace components.
 - `lib/env.ts` — Server-side environment validation (never import in client components).
 - `lib/llm/` — LLM provider adapter (server-side only).
@@ -133,7 +135,7 @@ pnpm dev -- -p 3001
 
 ## Next Build Steps
 
-The next bounded LLM stage to implement is `extract_strategic_tension`, using the same pattern:
+The next bounded LLM stage to implement is `generate_campaign_routes`, using the same pattern:
 server-side stage → API route → schema validation → trace event → mock fallback → tests → docs.
 
 After that:

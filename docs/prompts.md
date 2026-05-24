@@ -22,12 +22,23 @@ Trace events include a `promptVersion` field (e.g. `"normalize_brief.v1"`) so pr
 | File | Stage | Status |
 |---|---|---|
 | `prompts/normalize_brief.md` | `normalize_brief` | Active — used in OpenAI mode |
-| `prompts/extract_strategic_tension.md` | `extract_strategic_tension` | Mocked — not yet wired |
+| `prompts/extract_strategic_tension.md` | `extract_strategic_tension` | Active — used in OpenAI mode |
 | `prompts/generate_campaign_routes.md` | `generate_routes` | Mocked — not yet wired |
 | `prompts/build_personas.md` | `build_personas` | Mocked — not yet wired |
 | `prompts/simulate_audience_reactions.md` | `simulate_reactions` | Mocked — not yet wired |
 | `prompts/premortem_review.md` | `premortem_review` | Mocked — not yet wired |
 | `prompts/generate_execution_plan.md` | `generate_execution_plan` | Mocked — not yet wired |
+
+## `extract_strategic_tension` prompt notes
+
+The prompt for `extract_strategic_tension.md` (version `extract_strategic_tension.v1`):
+
+- Instructs the model to return JSON only — no prose, no markdown.
+- Maps exactly to `strategicTensionSchema` in `lib/schemas/campaign.ts`.
+- Does not request market research or probability claims.
+- Requires `avoid` to be campaign-specific (not generic advice).
+- Appends the full `NormalizedCampaignBrief` as JSON under a `## NORMALIZED BRIEF` section.
+- Output is validated with Zod before returning; retries once on parse or schema failure.
 
 ## Output format requirements (all prompts)
 

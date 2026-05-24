@@ -49,7 +49,7 @@ Deploy without setting any environment variables. The app runs fully in mock mod
 - No OpenAI calls are made.
 - No secrets are required.
 
-### Enabling real brief normalization (OpenAI)
+### Enabling real brief normalization and tension extraction (OpenAI)
 
 Set both variables in Vercel:
 
@@ -61,13 +61,31 @@ OPENAI_API_KEY=sk-...
 With this configuration:
 
 - `POST /api/campaign/normalize` calls OpenAI and returns a real normalized brief.
+- `POST /api/campaign/tension` calls OpenAI and returns a real strategic tension (takes a normalized brief as input).
 - The main workflow UI still uses mocked strategy outputs for all other stages.
-- Only `normalize_brief` is real — everything after it remains mocked.
+- Only `normalize_brief` and `extract_strategic_tension` are real — everything after them remains mocked.
 - The Vercel build does not require the API key; only runtime API calls do.
+
+### Testing the two-stage real path locally
+
+```bash
+# Step 1: Normalize a brief
+curl -X POST http://localhost:3000/api/campaign/normalize \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Fashion campaign for a Lisbon brand launching a new capsule for creative professionals with a low budget and Instagram-first rollout."}'
+
+# Step 2: Copy the returned normalizedBrief and pass it to the tension route
+curl -X POST http://localhost:3000/api/campaign/tension \
+  -H "Content-Type: application/json" \
+  -d '{"normalizedBrief": { ... paste normalizedBrief here ... }}'
+```
+
+Both routes work in mock mode without any environment variables.
 
 ## Current limitations
 
-- **Only `normalize_brief` can use a real LLM provider.** All subsequent stages (strategic tension, routes, personas, simulations, scores, pre-mortem, comparison, execution plan) remain mocked.
+- **Only `normalize_brief` and `extract_strategic_tension` can use a real LLM provider.** All subsequent stages (routes, personas, simulations, scores, pre-mortem, comparison, execution plan) remain mocked.
+- **`extract_strategic_tension` is strategic interpretation only.** It does not use real market data or produce predictions.
 - **No database, auth, or persistence.** Campaign runs are not saved between sessions.
 - **No PDF export in v1.** The export artifact boundary is a placeholder.
 - **No billing, no multi-tenant auth.** V1 is a demo-quality tool.
@@ -78,8 +96,10 @@ Server-side only (never exposed to the browser):
 
 - `lib/env.ts` — reads `CAMPAIGN_SANDBOX_LLM_PROVIDER` and `OPENAI_API_KEY`
 - `lib/llm/` — OpenAI adapter
-- `lib/workflow/stages/normalize-brief.ts` — stage implementation
-- `app/api/campaign/normalize/route.ts` — API endpoint
+- `lib/workflow/stages/normalize-brief.ts` — normalization stage
+- `lib/workflow/stages/extract-strategic-tension.ts` — tension stage
+- `app/api/campaign/normalize/route.ts` — normalization API endpoint
+- `app/api/campaign/tension/route.ts` — tension API endpoint
 
 Client-safe (no secrets):
 
@@ -92,9 +112,9 @@ Client-safe (no secrets):
 
 ## Next deployment steps
 
-The next bounded LLM stage to implement is `extract_strategic_tension`, using the same pattern:
+The next bounded LLM stage to implement is `generate_campaign_routes`, using the same pattern:
 
 1. Server-side stage function behind the same provider adapter.
-2. New API route: `app/api/campaign/extract-tension/route.ts`.
+2. New API route: `app/api/campaign/routes/route.ts`.
 3. Schema validation, trace event, mock fallback, tests.
 4. Docs updated to reflect which stages are real.
