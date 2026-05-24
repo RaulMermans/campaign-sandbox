@@ -32,12 +32,14 @@ When a stage uses a real LLM provider, these additional fields are included:
 Mock providers always set `costUsd: 0`. Token counts are `undefined` in mock mode. Mock model names:
 - `normalize_brief`: `"mock-normalizer"`
 - `extract_strategic_tension`: `"mock-strategic-tension"`
+- `generate_campaign_routes`: `"mock-route-generator"`
 
 ## What is not logged
 
 - API keys or auth credentials
 - Raw provider response objects containing metadata
 - Full brief text in production telemetry (briefs stay in stage input/output schemas only)
+- Raw model output — never returned to callers or the UI
 
 ## Current storage
 
@@ -49,6 +51,7 @@ V1 stores trace events in mock run objects only. Later versions should persist t
 |---|---|
 | `normalize_brief` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | `extract_strategic_tension` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
+| `generate_campaign_routes` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | All other stages | Mock trace events only |
 
-Both real stages emit `provider`, `model`, `promptVersion`, `inputTokens`, `outputTokens`, and `durationMs` in their trace events.
+All three real stages emit `provider`, `model`, `promptVersion`, `inputTokens`, `outputTokens`, and `durationMs` in their trace events.

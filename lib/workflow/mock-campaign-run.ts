@@ -77,7 +77,7 @@ export const strategicTension: StrategicTension = {
   avoid: ["travel campaign cliches", "scarcity hype", "startup productivity language", "performative Gen Z slang"],
 };
 
-const routes: CampaignRoute[] = [
+export const campaignRoutes: CampaignRoute[] = [
   {
     id: "route-quiet-itinerary",
     name: "Quiet Itinerary",
@@ -236,7 +236,7 @@ const premortem: PremortemReview = {
 function buildComparisonMatrix(scores: ReturnType<typeof scoreRoutes>): RouteComparisonMatrix {
   return {
     criteria: ["clarity", "distinctiveness", "feasibility", "conversion potential", "brand fit"],
-    rows: routes.map((route) => {
+    rows: campaignRoutes.map((route) => {
       const score = scores.find((item) => item.routeId === route.id);
       return {
         routeId: route.id,
@@ -263,7 +263,7 @@ function buildComparisonMatrix(scores: ReturnType<typeof scoreRoutes>): RouteCom
 }
 
 function buildExecutionPlan(selectedRouteId: string): CampaignExecutionPlan {
-  const selectedRoute = routes.find((route) => route.id === selectedRouteId) ?? routes[0];
+  const selectedRoute = campaignRoutes.find((route) => route.id === selectedRouteId) ?? campaignRoutes[0];
 
   return {
     selectedRouteId: selectedRoute.id,
@@ -322,7 +322,7 @@ function buildTraceEvents(runId: string, status: "awaiting_selection" | "complet
 export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRun {
   const now = new Date().toISOString();
   const runId = "mock-nodo-run";
-  const scores = scoreRoutes(routes, simulations);
+  const scores = scoreRoutes(campaignRoutes, simulations);
 
   return {
     id: runId,
@@ -332,7 +332,7 @@ export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRu
     rawBrief: { text: messyBrief, source: "paste", receivedAt: now },
     normalizedBrief,
     strategicTension,
-    routes,
+    routes: campaignRoutes,
     personas,
     simulations,
     scores,
@@ -347,7 +347,7 @@ export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRu
 export function buildMockCompletedCampaignRun(selectedRouteId = "route-quiet-itinerary", messyBrief = NODO_SAMPLE_BRIEF): CampaignRun {
   const now = new Date().toISOString();
   const runId = "mock-nodo-run";
-  const scores = scoreRoutes(routes, simulations);
+  const scores = scoreRoutes(campaignRoutes, simulations);
 
   return {
     id: runId,
@@ -357,7 +357,7 @@ export function buildMockCompletedCampaignRun(selectedRouteId = "route-quiet-iti
     rawBrief: { text: messyBrief, source: "paste", receivedAt: now },
     normalizedBrief,
     strategicTension,
-    routes,
+    routes: campaignRoutes,
     personas,
     simulations,
     scores,

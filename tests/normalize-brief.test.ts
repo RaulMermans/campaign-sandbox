@@ -145,7 +145,7 @@ describe("normalizeBriefStage – OpenAI mode with bad response", () => {
 
   it("throws LlmProviderError when OPENAI_API_KEY is missing", async () => {
     vi.stubEnv("CAMPAIGN_SANDBOX_LLM_PROVIDER", "openai");
-    // No OPENAI_API_KEY set — env.openaiApiKey will be "".
+    vi.stubEnv("OPENAI_API_KEY", ""); // Explicitly clear — prevents shell env leaking into test
 
     await expect(
       normalizeBriefStage(SAMPLE_INPUT),

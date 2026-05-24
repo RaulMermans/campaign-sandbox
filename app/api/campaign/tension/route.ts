@@ -5,6 +5,11 @@
 import { NextResponse } from "next/server";
 import { normalizedCampaignBriefSchema } from "@/lib/schemas/campaign";
 import { extractStrategicTensionStage } from "@/lib/workflow/stages/extract-strategic-tension";
+import {
+  LlmJsonParseError,
+  LlmProviderError,
+  LlmSchemaValidationError,
+} from "@/lib/llm/errors";
 
 // Force Node.js runtime so we can safely use fs, env, and provider SDKs.
 export const runtime = "nodejs";
@@ -61,7 +66,26 @@ export async function POST(request: Request): Promise<Response> {
       traceEvent: result.traceEvent,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Strategic tension extraction failed.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Sanitize: never return raw provider response text, model output, API keys,
+    // stack traces, or provider internals. Map to safe public error shapes only.
+    if (err instanceof LlmProviderError) {
+      return NextResponse.json(
+        { error: "LLM stage failed.", code: "LLM_PROVIDER_ERROR" },
+        { status: 500 },
+      );
+    }
+    if (err instanceof LlmJsonParseError) {
+      return NextResponse.json(
+        { error: "LLM stage failed.", code: "LLM_JSON_PARSE_ERROR" },
+        { status: 500 },
+      );
+    }
+    if (err instanceof LlmSchemaValidationError) {
+      return NextResponse.json(
+        { error: "LLM stage failed.", code: "LLM_SCHEMA_VALIDATION_ERROR" },
+        { status: 500 },
+      );
+    }
+    return NextResponse.json({ error: "Strategic tension extraction failed." }, { status: 500 });
   }
 }

@@ -23,7 +23,7 @@ Trace events include a `promptVersion` field (e.g. `"normalize_brief.v1"`) so pr
 |---|---|---|
 | `prompts/normalize_brief.md` | `normalize_brief` | Active — used in OpenAI mode |
 | `prompts/extract_strategic_tension.md` | `extract_strategic_tension` | Active — used in OpenAI mode |
-| `prompts/generate_campaign_routes.md` | `generate_routes` | Mocked — not yet wired |
+| `prompts/generate_campaign_routes.md` | `generate_campaign_routes` | Active — used in OpenAI mode |
 | `prompts/build_personas.md` | `build_personas` | Mocked — not yet wired |
 | `prompts/simulate_audience_reactions.md` | `simulate_reactions` | Mocked — not yet wired |
 | `prompts/premortem_review.md` | `premortem_review` | Mocked — not yet wired |
