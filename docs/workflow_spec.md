@@ -1,10 +1,28 @@
 # Workflow Spec
 
+## Stage status
+
+| Stage | Status |
+|---|---|
+| `normalize_brief` | **Real (optional)** — server-side, OpenAI or mock |
+| `extract_strategic_tension` | **Real (optional)** — server-side, OpenAI or mock |
+| `generate_campaign_routes` | **Real (optional)** — server-side, OpenAI or mock |
+| `build_personas` | Mocked |
+| `simulate_reactions` | Mocked |
+| `score_routes` | Deterministic |
+| `premortem_review` | Mocked |
+| `compare_routes` | Deterministic |
+| `human_selection` | Human gate |
+| `generate_execution_plan` | Mocked |
+| `export_artifact` | Placeholder |
+
+## Stage descriptions
+
 `normalize_brief` turns raw text into a structured brief while preserving uncertainty.
 
 `extract_strategic_tension` identifies the core contradiction and opportunity.
 
-`generate_routes` creates three routes: safest, boldest, and conversion-oriented.
+`generate_campaign_routes` creates 3–5 routes: at least one safest, one boldest, one conversion-oriented.
 
 `build_personas` creates synthetic personas for simulation only.
 

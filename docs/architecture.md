@@ -10,7 +10,7 @@ Deterministic code owns orchestration, schema validation, scoring weights, trace
 |---|---|---|
 | `normalize_brief` | **Real (optional)** | `mock` (default) or `openai` |
 | `extract_strategic_tension` | **Real (optional)** | `mock` (default) or `openai` |
-| `generate_routes` | Mocked | — |
+| `generate_campaign_routes` | **Real (optional)** | `mock` (default) or `openai` |
 | `build_personas` | Mocked | — |
 | `simulate_reactions` | Mocked | — |
 | `score_routes` | Deterministic | — |
@@ -29,6 +29,7 @@ Real LLM code runs exclusively server-side:
 - `lib/workflow/stages/` — individual bounded LLM stage functions. Server-side only.
 - `app/api/campaign/normalize/route.ts` — normalization API endpoint.
 - `app/api/campaign/tension/route.ts` — strategic tension API endpoint. Consumes validated normalized briefs only.
+- `app/api/campaign/routes/route.ts` — campaign route generation API endpoint. Consumes validated normalized brief and strategic tension only.
 
 Client components call API routes, not stage functions directly. The mock workflow (`lib/workflow/run-campaign-workflow.ts`) remains client-safe and uses no server-only imports.
 
@@ -41,6 +42,18 @@ Client components call API routes, not stage functions directly. The mock workfl
 - Output is strategic interpretation based only on the normalized brief.
 - Validates output with `strategicTensionSchema` before returning.
 - Retries once on JSON parse or schema validation failure.
+
+## API error sanitization
+
+All API routes sanitize LLM/provider errors before returning them to clients. Raw provider response text, model output, API keys, stack traces, and provider internals are never returned. LLM errors are mapped to safe public shapes:
+
+```json
+{ "error": "LLM stage failed.", "code": "LLM_PROVIDER_ERROR" }
+{ "error": "LLM stage failed.", "code": "LLM_JSON_PARSE_ERROR" }
+{ "error": "LLM stage failed.", "code": "LLM_SCHEMA_VALIDATION_ERROR" }
+```
+
+Validation errors remain detailed enough for developer use (they include `issues` with path and message).
 
 ## Provider adapter
 
@@ -61,8 +74,8 @@ All stage outputs are validated with Zod schemas in `lib/schemas/campaign.ts`. U
 
 ## For v1, no database, auth, or persistence.
 
-Later integrations should follow the same server boundary pattern: new stage function → new API route → validated schema → trace event → tests.
+Later integrations should follow the same server boundary pattern: new stage function → new API route → validated schema → trace event → sanitized error handling → tests → docs.
 
-## Next stage
+## generate_campaign_routes constraints
 
-The next real stage to implement is `generate_campaign_routes`, following the same pattern. Only implement after `extract_strategic_tension` passes `verify:full`.
+`generate_campaign_routes` is server-side only. It consumes validated `normalizedBrief` and `strategicTension` inputs — never a raw messy brief. It generates strategic route options (3–5), not predictions. It does not use real market data or simulate real audience behavior. Routes remain decision support, not campaign performance forecasting.

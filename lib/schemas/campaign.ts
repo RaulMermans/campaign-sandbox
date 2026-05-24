@@ -89,6 +89,15 @@ export const campaignRouteSchema = z
   })
   .strict();
 
+// Wrapper schema for generate_campaign_routes output.
+// Uses an object wrapper because OpenAI JSON mode expects a JSON object, not a top-level array.
+// Requires 3–5 routes that must include safest, boldest, and conversion strategicRole values.
+export const campaignRoutesOutputSchema = z
+  .object({
+    routes: z.array(campaignRouteSchema).min(3).max(5),
+  })
+  .strict();
+
 export const personaSchema = z
   .object({
     id: z.string().min(1),
@@ -217,6 +226,7 @@ export const campaignExecutionPlanSchema = z
   })
   .strict();
 
+export type CampaignRoutesOutput = z.infer<typeof campaignRoutesOutputSchema>;
 export type RawCampaignBrief = z.infer<typeof rawCampaignBriefSchema>;
 export type NormalizedCampaignBrief = z.infer<typeof normalizedCampaignBriefSchema>;
 export type StrategicTension = z.infer<typeof strategicTensionSchema>;
