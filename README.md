@@ -58,7 +58,7 @@ See [docs/deployment.md](docs/deployment.md) for full instructions.
 2. Import repository in Vercel.
 3. Deploy without setting any environment variables.
 
-**Enable real brief normalization and tension extraction:**
+**Enable real brief normalization, tension extraction, and route generation:**
 
 Set these in Vercel → Project → Settings → Environment Variables:
 
@@ -67,7 +67,7 @@ CAMPAIGN_SANDBOX_LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
 ```
 
-Only `normalize_brief` and `extract_strategic_tension` use the real provider. All later stages remain mocked. See [docs/deployment.md](docs/deployment.md) for the full variable list, safety notes, and how to test both stages locally.
+`normalize_brief`, `extract_strategic_tension`, and `generate_campaign_routes` use the real provider. All later stages remain mocked. See [docs/deployment.md](docs/deployment.md) for the full variable list, safety notes, and how to test all three stages locally.
 
 ## Environment variables
 
@@ -85,17 +85,19 @@ The app builds and runs with no env vars set (defaults to mock mode). See `.env.
 |---|---|
 | `normalize_brief` | **Real (optional)** via server-side env |
 | `extract_strategic_tension` | **Real (optional)** via server-side env |
+| `generate_campaign_routes` | **Real (optional)** via server-side env |
 | All later stages | Mocked |
 
-Both real stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. The app builds and runs fully without any env vars (mock mode).
+All three real stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. The app builds and runs fully without any env vars (mock mode).
 
-`extract_strategic_tension` is strategic interpretation only — it does not use real market data or produce predictions. Synthetic persona reactions and route scores are strategic estimates for decision support, not real market research or success predictions.
+`extract_strategic_tension` is strategic interpretation only — it does not use real market data or produce predictions. `generate_campaign_routes` generates strategic options for human review, not performance predictions — routes are decision support, not campaign forecasts. Synthetic persona reactions and route scores are strategic estimates for decision support, not real market research or success predictions.
 
 ## Project Structure
 
 - `app/` — Next.js routes and API endpoints.
 - `app/api/campaign/normalize/` — Server-side normalization API route.
 - `app/api/campaign/tension/` — Server-side strategic tension API route.
+- `app/api/campaign/routes/` — Server-side campaign route generation API route.
 - `components/` — UI, brief, route, simulation, and trace components.
 - `lib/env.ts` — Server-side environment validation (never import in client components).
 - `lib/llm/` — LLM provider adapter (server-side only).
@@ -135,7 +137,7 @@ pnpm dev -- -p 3001
 
 ## Next Build Steps
 
-The next bounded LLM stage to implement is `generate_campaign_routes`, using the same pattern:
+The next bounded LLM stage to implement is `build_personas`, using the same pattern:
 server-side stage → API route → schema validation → trace event → mock fallback → tests → docs.
 
 After that:

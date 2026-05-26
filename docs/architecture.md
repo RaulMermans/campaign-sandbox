@@ -10,7 +10,7 @@ Deterministic code owns orchestration, schema validation, scoring weights, trace
 |---|---|---|
 | `normalize_brief` | **Real (optional)** | `mock` (default) or `openai` |
 | `extract_strategic_tension` | **Real (optional)** | `mock` (default) or `openai` |
-| `generate_routes` | Mocked | — |
+| `generate_campaign_routes` | **Real (optional)** | `mock` (default) or `openai` |
 | `build_personas` | Mocked | — |
 | `simulate_reactions` | Mocked | — |
 | `score_routes` | Deterministic | — |
@@ -29,8 +29,13 @@ Real LLM code runs exclusively server-side:
 - `lib/workflow/stages/` — individual bounded LLM stage functions. Server-side only.
 - `app/api/campaign/normalize/route.ts` — normalization API endpoint.
 - `app/api/campaign/tension/route.ts` — strategic tension API endpoint. Consumes validated normalized briefs only.
+- `app/api/campaign/routes/route.ts` — route generation API endpoint. Consumes validated normalized brief and strategic tension only.
 
 Client components call API routes, not stage functions directly. The mock workflow (`lib/workflow/run-campaign-workflow.ts`) remains client-safe and uses no server-only imports.
+
+## API error safety
+
+All API routes catch typed LLM errors and return sanitized responses. Raw provider output, model text, stack traces, and API keys are never returned to clients. Error responses use the shape `{ error: "LLM stage failed.", code: "LLM_PROVIDER_ERROR" | "LLM_JSON_PARSE_ERROR" | "LLM_SCHEMA_VALIDATION_ERROR" }`. Validation errors include path and message details for developer use but no raw model content.
 
 ## `extract_strategic_tension` stage notes
 
@@ -41,6 +46,18 @@ Client components call API routes, not stage functions directly. The mock workfl
 - Output is strategic interpretation based only on the normalized brief.
 - Validates output with `strategicTensionSchema` before returning.
 - Retries once on JSON parse or schema validation failure.
+
+## `generate_campaign_routes` stage notes
+
+- Server-side only. Never exposed to the browser.
+- Consumes a validated `NormalizedCampaignBrief` and `StrategicTension` — does not accept raw brief text.
+- Generates 3–5 strategically distinct campaign routes (safest, boldest, conversion-oriented).
+- Does not use real market data, real audience research, or historical performance data.
+- Does not produce probability claims or success predictions.
+- Routes are strategic options for human decision-making, not recommendations.
+- Output is validated with `campaignRoutesOutputSchema` (Zod wrapper) before returning.
+- Retries once on JSON parse or schema validation failure.
+- Prompt version: `generate_campaign_routes.v1`.
 
 ## Provider adapter
 
@@ -65,4 +82,4 @@ Later integrations should follow the same server boundary pattern: new stage fun
 
 ## Next stage
 
-The next real stage to implement is `generate_campaign_routes`, following the same pattern. Only implement after `extract_strategic_tension` passes `verify:full`.
+The next real stage to implement is `build_personas`, following the same pattern. Only implement after `generate_campaign_routes` passes `verify:full`.

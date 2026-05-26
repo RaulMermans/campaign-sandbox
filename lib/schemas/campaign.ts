@@ -217,6 +217,16 @@ export const campaignExecutionPlanSchema = z
   })
   .strict();
 
+// Wrapper required because OpenAI JSON mode expects a JSON object, not a top-level array.
+// Routes must be 3–5 meaningfully distinct strategic territories.
+export const campaignRoutesOutputSchema = z
+  .object({
+    routes: z.array(campaignRouteSchema).min(3).max(5),
+  })
+  .strict();
+
+export type CampaignRoutesOutput = z.infer<typeof campaignRoutesOutputSchema>;
+
 export type RawCampaignBrief = z.infer<typeof rawCampaignBriefSchema>;
 export type NormalizedCampaignBrief = z.infer<typeof normalizedCampaignBriefSchema>;
 export type StrategicTension = z.infer<typeof strategicTensionSchema>;

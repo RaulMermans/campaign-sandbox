@@ -4,7 +4,7 @@
 
 `extract_strategic_tension` identifies the core contradiction and opportunity.
 
-`generate_routes` creates three routes: safest, boldest, and conversion-oriented.
+`generate_campaign_routes` creates 3–5 meaningfully distinct routes including at least one safest, boldest, and conversion-oriented option. Routes are strategic options for human evaluation, not performance predictions. This stage is server-side only, consuming validated `NormalizedCampaignBrief` and `StrategicTension` inputs. Available as a real bounded LLM stage or mock.
 
 `build_personas` creates synthetic personas for simulation only.
 
