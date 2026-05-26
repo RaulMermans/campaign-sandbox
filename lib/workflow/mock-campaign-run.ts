@@ -128,7 +128,7 @@ export const campaignRoutes: CampaignRoute[] = [
   },
 ];
 
-const personas: Persona[] = [
+export const campaignPersonas: Persona[] = [
   {
     id: "persona-creative-director",
     name: "Iria",
@@ -333,7 +333,7 @@ export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRu
     normalizedBrief,
     strategicTension,
     routes: campaignRoutes,
-    personas,
+    personas: campaignPersonas,
     simulations,
     scores,
     premortem,
@@ -358,7 +358,7 @@ export function buildMockCompletedCampaignRun(selectedRouteId = "route-quiet-iti
     normalizedBrief,
     strategicTension,
     routes: campaignRoutes,
-    personas,
+    personas: campaignPersonas,
     simulations,
     scores,
     premortem,

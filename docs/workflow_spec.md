@@ -4,9 +4,9 @@
 
 `extract_strategic_tension` identifies the core contradiction and opportunity.
 
-`generate_campaign_routes` creates 3–5 meaningfully distinct routes including at least one safest, boldest, and conversion-oriented option. Routes are strategic options for human evaluation, not performance predictions. This stage is server-side only, consuming validated `NormalizedCampaignBrief` and `StrategicTension` inputs. Available as a real bounded LLM stage or mock.
+`generate_campaign_routes` creates 3–5 meaningfully distinct routes. The `campaignRoutesOutputSchema` enforces at least one `safest`, `boldest`, and `conversion` route and unique route IDs — these constraints are validated at the schema layer, not just the prompt. Routes are strategic options for human evaluation, not performance predictions. This stage is server-side only, consuming validated `NormalizedCampaignBrief` and `StrategicTension` inputs. Available as a real bounded LLM stage or mock.
 
-`build_personas` creates synthetic personas for simulation only.
+`build_personas` creates 3–6 synthetic personas grounded in the normalized brief, strategic tension, and campaign routes. Personas are synthetic audience hypotheses for planning purposes only — they are not real research, do not predict behavior, and must not be presented as real data or used for discriminatory targeting. This stage is server-side only, consuming all three validated upstream inputs. Available as a real bounded LLM stage or mock. Everything after `build_personas` remains mocked.
 
 `simulate_reactions` estimates likely synthetic persona reactions, objections, and intent signals.
 

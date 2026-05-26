@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm lint *)",
+      "Bash(node -e \"require\\('/Users/raulm/Desktop/GitHub/CampaignSandbox/node_modules/.pnpm/vite@5.4.21_@types+node@22.19.19_lightningcss@1.32.0/node_modules/rollup/package.json'\\)\")",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

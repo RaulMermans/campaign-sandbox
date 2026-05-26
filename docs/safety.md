@@ -12,7 +12,7 @@ Campaign Sandbox is decision support, not real market research.
 
 ## LLM stage rules
 
-These rules apply to all real LLM stages (`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, and future stages):
+These rules apply to all real LLM stages (`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, and future stages):
 
 - Prompts must instruct the model to preserve uncertainty as open questions, not convert it to fabricated certainty.
 - Prompts must not request probability claims or market predictions.
@@ -38,9 +38,9 @@ Validation errors include path and message for developer use but contain no raw 
 
 ## What remains synthetic
 
-Even when `normalize_brief`, `extract_strategic_tension`, and `generate_campaign_routes` use a real provider:
+Even when `normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, and `build_personas` use a real provider:
 
-- All stages after `generate_campaign_routes` remain mocked.
+- All stages after `build_personas` remain mocked.
 - `generate_campaign_routes` generates strategic options, not market predictions. It does not use real market data.
 - Routes are decision-support material, not campaign performance forecasts.
 - Persona reactions are synthetic, not real audience research.
@@ -60,9 +60,23 @@ Even when `normalize_brief`, `extract_strategic_tension`, and `generate_campaign
 - The stage consumes validated `NormalizedCampaignBrief` and `StrategicTension` objects only — never raw brief text.
 - The prompt explicitly prohibits real performance data, probability claims, and success predictions.
 - Output is validated with `campaignRoutesOutputSchema` (Zod) before returning. Unvalidated output never reaches callers.
+- `campaignRoutesOutputSchema` enforces required strategic roles (`safest`, `boldest`, `conversion`) and unique route IDs at the schema layer — the prompt alone is not sufficient.
 - Routes are strategic options for human review and selection, not recommendations or predictions.
 - `sampleCopy` must be campaign-safe copy examples, not guaranteed claims.
 - Every route must include at least one risk (enforced by schema and prompt).
+
+## `build_personas` safety rules
+
+- The stage consumes validated `NormalizedCampaignBrief`, `StrategicTension`, and `CampaignRoute[]` only — never raw brief text.
+- Personas are synthetic audience hypotheses. They are not real research, do not represent real people, and must never be presented as real audience data.
+- Personas do not predict real behavior. Simulation results based on personas are estimates, not market research.
+- The prompt explicitly prohibits inventing statistics, market share figures, survey data, or behavior claims.
+- Protected characteristics (race, religion, national origin, disability status, sexual orientation) must not be used as targeting criteria. The prompt enforces this.
+- Sensitivities in personas relate to campaign style and tone, not personal attributes of protected classes.
+- Output is validated with `personasOutputSchema` (Zod) before returning. Unvalidated output never reaches callers.
+- `personasOutputSchema` enforces unique persona IDs at the schema layer.
+- Personas must not be passed to external services or used to target individuals.
+- Later audience simulation (`simulate_reactions`) is mocked and subject to the same constraints.
 
 ## Future LLM integrations
 

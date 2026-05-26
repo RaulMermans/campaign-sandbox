@@ -219,13 +219,58 @@ export const campaignExecutionPlanSchema = z
 
 // Wrapper required because OpenAI JSON mode expects a JSON object, not a top-level array.
 // Routes must be 3–5 meaningfully distinct strategic territories.
+// Enforces: required strategic roles (safest, boldest, conversion) and unique route IDs.
 export const campaignRoutesOutputSchema = z
   .object({
     routes: z.array(campaignRouteSchema).min(3).max(5),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    const roles = value.routes.map((route) => route.strategicRole);
+
+    for (const requiredRole of ["safest", "boldest", "conversion"] as const) {
+      if (!roles.includes(requiredRole)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["routes"],
+          message: `Campaign routes must include at least one "${requiredRole}" route.`,
+        });
+      }
+    }
+
+    const ids = new Set(value.routes.map((route) => route.id));
+    if (ids.size !== value.routes.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["routes"],
+        message: "Campaign route IDs must be unique.",
+      });
+    }
+  });
 
 export type CampaignRoutesOutput = z.infer<typeof campaignRoutesOutputSchema>;
+
+// Wrapper for personas output.
+// Personas are synthetic audience hypotheses for planning, not real research.
+// Enforces: 3–6 unique personas by ID.
+export const personasOutputSchema = z
+  .object({
+    personas: z.array(personaSchema).min(3).max(6),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    const ids = new Set(value.personas.map((persona) => persona.id));
+
+    if (ids.size !== value.personas.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["personas"],
+        message: "Persona IDs must be unique.",
+      });
+    }
+  });
+
+export type PersonasOutput = z.infer<typeof personasOutputSchema>;
 
 export type RawCampaignBrief = z.infer<typeof rawCampaignBriefSchema>;
 export type NormalizedCampaignBrief = z.infer<typeof normalizedCampaignBriefSchema>;

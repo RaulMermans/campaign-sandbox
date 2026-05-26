@@ -99,6 +99,97 @@ describe("generateCampaignRoutesStage – mock mode", () => {
 });
 
 // ---------------------------------------------------------------------------
+// campaignRoutesOutputSchema — hardened validation
+// ---------------------------------------------------------------------------
+
+describe("campaignRoutesOutputSchema – hardened strategic role enforcement", () => {
+  const baseRoute = {
+    id: "route-a",
+    name: "Route A",
+    strategicRole: "safest" as const,
+    position: "A clear brand-safe position.",
+    concept: "A simple concept.",
+    whyItWorks: "It fits the brand.",
+    keyMessage: "A key message.",
+    tone: ["calm"],
+    channels: ["Instagram"],
+    activationIdeas: ["An idea"],
+    sampleCopy: ["Some copy"],
+    assetIdeas: ["An asset"],
+    risks: ["A risk"],
+  };
+
+  it("passes when routes include safest, boldest, and conversion with unique IDs", () => {
+    const routes = [
+      { ...baseRoute, id: "route-safest", strategicRole: "safest" as const },
+      { ...baseRoute, id: "route-boldest", strategicRole: "boldest" as const },
+      { ...baseRoute, id: "route-conversion", strategicRole: "conversion" as const },
+    ];
+    expect(() => campaignRoutesOutputSchema.parse({ routes })).not.toThrow();
+  });
+
+  it("fails when routes are missing the 'conversion' role", () => {
+    const routes = [
+      { ...baseRoute, id: "route-a", strategicRole: "safest" as const },
+      { ...baseRoute, id: "route-b", strategicRole: "boldest" as const },
+      { ...baseRoute, id: "route-c", strategicRole: "boldest" as const },
+    ];
+    expect(() => campaignRoutesOutputSchema.parse({ routes })).toThrow(/conversion/);
+  });
+
+  it("fails when routes are missing the 'boldest' role", () => {
+    const routes = [
+      { ...baseRoute, id: "route-a", strategicRole: "safest" as const },
+      { ...baseRoute, id: "route-b", strategicRole: "safest" as const },
+      { ...baseRoute, id: "route-c", strategicRole: "conversion" as const },
+    ];
+    expect(() => campaignRoutesOutputSchema.parse({ routes })).toThrow(/boldest/);
+  });
+
+  it("fails when route IDs are not unique", () => {
+    const routes = [
+      { ...baseRoute, id: "route-dup", strategicRole: "safest" as const },
+      { ...baseRoute, id: "route-dup", strategicRole: "boldest" as const },
+      { ...baseRoute, id: "route-c", strategicRole: "conversion" as const },
+    ];
+    expect(() => campaignRoutesOutputSchema.parse({ routes })).toThrow(/unique/i);
+  });
+
+  it("throws LlmSchemaValidationError on structurally valid JSON missing a required role", async () => {
+    vi.stubEnv("CAMPAIGN_SANDBOX_LLM_PROVIDER", "openai");
+    vi.stubEnv("OPENAI_API_KEY", "sk-test-key-for-unit-test");
+
+    const routesAllSafest = [
+      { ...baseRoute, id: "route-a", strategicRole: "safest" },
+      { ...baseRoute, id: "route-b", strategicRole: "safest" },
+      { ...baseRoute, id: "route-c", strategicRole: "safest" },
+    ];
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({ routes: routesAllSafest }),
+              },
+            },
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+        text: async () => "{}",
+      }),
+    );
+
+    await expect(
+      generateCampaignRoutesStage(SAMPLE_INPUT),
+    ).rejects.toBeInstanceOf(LlmSchemaValidationError);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // OpenAI mode — invalid model output produces typed errors
 // ---------------------------------------------------------------------------
 

@@ -49,7 +49,7 @@ Deploy without setting any environment variables. The app runs fully in mock mod
 - No OpenAI calls are made.
 - No secrets are required.
 
-### Enabling real brief normalization, tension extraction, and route generation (OpenAI)
+### Enabling real brief normalization, tension extraction, route generation, and persona building (OpenAI)
 
 Set both variables in Vercel:
 
@@ -63,11 +63,12 @@ With this configuration:
 - `POST /api/campaign/normalize` calls OpenAI and returns a real normalized brief.
 - `POST /api/campaign/tension` calls OpenAI and returns a real strategic tension (takes a normalized brief as input).
 - `POST /api/campaign/routes` calls OpenAI and returns 3–5 real campaign routes (takes a normalized brief and strategic tension as input).
+- `POST /api/campaign/personas` calls OpenAI and returns 3–6 synthetic personas (takes a normalized brief, strategic tension, and routes as input). Personas are synthetic audience hypotheses for planning — not real research.
 - The main workflow UI still uses mocked strategy outputs for all other stages.
-- Only `normalize_brief`, `extract_strategic_tension`, and `generate_campaign_routes` are real — everything after them remains mocked.
+- Only `normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, and `build_personas` are real — everything after them remains mocked.
 - The Vercel build does not require the API key; only runtime API calls do.
 
-### Testing the three-stage real path locally
+### Testing the four-stage real path locally
 
 ```bash
 # Step 1: Normalize a brief
@@ -84,13 +85,19 @@ curl -X POST http://localhost:3000/api/campaign/tension \
 curl -X POST http://localhost:3000/api/campaign/routes \
   -H "Content-Type: application/json" \
   -d '{"normalizedBrief": { ... }, "strategicTension": { ... }}'
+
+# Step 4: Copy normalizedBrief, strategicTension, and routes array, pass to the personas route
+curl -X POST http://localhost:3000/api/campaign/personas \
+  -H "Content-Type: application/json" \
+  -d '{"normalizedBrief": { ... }, "strategicTension": { ... }, "routes": [ ... ]}'
 ```
 
-All three routes work in mock mode without any environment variables.
+All four routes work in mock mode without any environment variables.
 
 ## Current limitations
 
-- **Only `normalize_brief`, `extract_strategic_tension`, and `generate_campaign_routes` can use a real LLM provider.** All subsequent stages (personas, simulations, scores, pre-mortem, comparison, execution plan) remain mocked.
+- **Only `normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, and `build_personas` can use a real LLM provider.** All subsequent stages (simulations, scores, pre-mortem, comparison, execution plan) remain mocked.
+- **`build_personas` generates synthetic planning hypotheses only.** Personas are not real audience research, do not predict behavior, and must not be used for discriminatory targeting.
 - **`generate_campaign_routes` is strategic route generation only.** It does not use real market data or produce performance predictions. Routes are decision support, not campaign forecasts.
 - **`extract_strategic_tension` is strategic interpretation only.** It does not use real market data or produce predictions.
 - **No database, auth, or persistence.** Campaign runs are not saved between sessions.
@@ -106,9 +113,11 @@ Server-side only (never exposed to the browser):
 - `lib/workflow/stages/normalize-brief.ts` — normalization stage
 - `lib/workflow/stages/extract-strategic-tension.ts` — tension stage
 - `lib/workflow/stages/generate-campaign-routes.ts` — route generation stage
+- `lib/workflow/stages/build-personas.ts` — persona building stage
 - `app/api/campaign/normalize/route.ts` — normalization API endpoint
 - `app/api/campaign/tension/route.ts` — tension API endpoint
 - `app/api/campaign/routes/route.ts` — route generation API endpoint
+- `app/api/campaign/personas/route.ts` — persona building API endpoint
 
 Client-safe (no secrets):
 
@@ -121,9 +130,12 @@ Client-safe (no secrets):
 
 ## Next deployment steps
 
-The next bounded LLM stage to implement is `build_personas`, using the same pattern:
+The next bounded LLM stage to implement is `simulate_reactions`, with extra care because synthetic personas can easily be confused with real audience research. Enforce clear labeling at prompt, schema, API, UI, and export layers before deploying.
+
+Follow the same pattern:
 
 1. Server-side stage function behind the same provider adapter.
-2. New API route: `app/api/campaign/personas/route.ts`.
+2. New API route: `app/api/campaign/simulate/route.ts`.
 3. Schema validation, trace event, mock fallback, tests.
-4. Docs updated to reflect which stages are real.
+4. Safety constraints updated to cover persona-based simulation.
+5. Docs updated to reflect which stages are real.

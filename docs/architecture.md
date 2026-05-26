@@ -11,7 +11,7 @@ Deterministic code owns orchestration, schema validation, scoring weights, trace
 | `normalize_brief` | **Real (optional)** | `mock` (default) or `openai` |
 | `extract_strategic_tension` | **Real (optional)** | `mock` (default) or `openai` |
 | `generate_campaign_routes` | **Real (optional)** | `mock` (default) or `openai` |
-| `build_personas` | Mocked | — |
+| `build_personas` | **Real (optional)** | `mock` (default) or `openai` |
 | `simulate_reactions` | Mocked | — |
 | `score_routes` | Deterministic | — |
 | `premortem_review` | Mocked | — |
@@ -30,6 +30,7 @@ Real LLM code runs exclusively server-side:
 - `app/api/campaign/normalize/route.ts` — normalization API endpoint.
 - `app/api/campaign/tension/route.ts` — strategic tension API endpoint. Consumes validated normalized briefs only.
 - `app/api/campaign/routes/route.ts` — route generation API endpoint. Consumes validated normalized brief and strategic tension only.
+- `app/api/campaign/personas/route.ts` — persona building API endpoint. Consumes validated normalized brief, strategic tension, and routes only.
 
 Client components call API routes, not stage functions directly. The mock workflow (`lib/workflow/run-campaign-workflow.ts`) remains client-safe and uses no server-only imports.
 
@@ -56,8 +57,22 @@ All API routes catch typed LLM errors and return sanitized responses. Raw provid
 - Does not produce probability claims or success predictions.
 - Routes are strategic options for human decision-making, not recommendations.
 - Output is validated with `campaignRoutesOutputSchema` (Zod wrapper) before returning.
+- `campaignRoutesOutputSchema` enforces required strategic roles (`safest`, `boldest`, `conversion`) and unique route IDs via `.superRefine()`.
 - Retries once on JSON parse or schema validation failure.
 - Prompt version: `generate_campaign_routes.v1`.
+
+## `build_personas` stage notes
+
+- Server-side only. Never exposed to the browser.
+- Consumes validated `NormalizedCampaignBrief`, `StrategicTension`, and `CampaignRoute[]` — does not accept raw brief text.
+- Generates 3–6 synthetic personas grounded in the campaign inputs.
+- Personas are synthetic audience hypotheses for planning purposes, not real research.
+- They do not predict real behavior and must not be presented as real data.
+- Personas must not be used for discriminatory targeting. Protected characteristics are not targeting criteria.
+- Output is validated with `personasOutputSchema` (Zod wrapper) before returning.
+- `personasOutputSchema` enforces unique persona IDs via `.superRefine()`.
+- Retries once on JSON parse or schema validation failure.
+- Prompt version: `build_personas.v1`.
 
 ## Provider adapter
 
@@ -82,4 +97,4 @@ Later integrations should follow the same server boundary pattern: new stage fun
 
 ## Next stage
 
-The next real stage to implement is `build_personas`, following the same pattern. Only implement after `generate_campaign_routes` passes `verify:full`.
+The next real stage to implement is `simulate_reactions`. Implement with extra care — synthetic personas can easily be confused with real audience research. Enforce clear labeling at every layer.
