@@ -12,7 +12,7 @@ Campaign Sandbox is decision support, not real market research.
 
 ## LLM stage rules
 
-These rules apply to all real LLM stages (`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, and future stages):
+These rules apply to all real LLM stages (`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, `simulate_reactions`, and future stages):
 
 - Prompts must instruct the model to preserve uncertainty as open questions, not convert it to fabricated certainty.
 - Prompts must not request probability claims or market predictions.
@@ -38,9 +38,9 @@ Validation errors include path and message for developer use but contain no raw 
 
 ## What remains synthetic
 
-Even when `normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, and `build_personas` use a real provider:
+Even when all five real stages use a real provider:
 
-- All stages after `build_personas` remain mocked.
+- All stages after `simulate_reactions` remain mocked.
 - `generate_campaign_routes` generates strategic options, not market predictions. It does not use real market data.
 - Routes are decision-support material, not campaign performance forecasts.
 - Persona reactions are synthetic, not real audience research.
@@ -76,7 +76,20 @@ Even when `normalize_brief`, `extract_strategic_tension`, `generate_campaign_rou
 - Output is validated with `personasOutputSchema` (Zod) before returning. Unvalidated output never reaches callers.
 - `personasOutputSchema` enforces unique persona IDs at the schema layer.
 - Personas must not be passed to external services or used to target individuals.
-- Later audience simulation (`simulate_reactions`) is mocked and subject to the same constraints.
+
+## `simulate_reactions` safety rules
+
+- The stage consumes validated `NormalizedCampaignBrief`, `StrategicTension`, `CampaignRoute[]`, and `Persona[]` only — never raw brief text.
+- Simulations are synthetic planning devices. They are not real audience research, do not predict real behavior, and must never be presented as market validation, conversion evidence, or survey findings.
+- Every simulation must include a caveat explicitly labeling the reaction as synthetic. This is enforced at the schema layer (`personaSimulationsOutputSchema`) — any simulation without "synthetic" in its caveat is rejected.
+- Scores (`resonanceScore`, `conversionIntent`, `signupIntent`) are bounded qualitative strategy scores (1–5), not probabilities. They are never presented as conversion rates, click-through rates, or success predictions.
+- `confidence` reflects certainty in the synthetic interpretation only, not real-world outcome certainty.
+- The prompt explicitly prohibits inventing survey data, social data, purchase history, market data, or test results.
+- The prompt prohibits using protected-class characteristics as targeting or reasoning criteria.
+- Output is validated with `personaSimulationsOutputSchema` (Zod) before returning. Unvalidated output never reaches callers.
+- Cross-reference coverage is validated with `validateSimulationCoverage` — unknown route/persona IDs and missing pairs are rejected as `LlmSchemaValidationError`.
+- Full matrix coverage (every route/persona pair) is required. Partial simulation sets are not accepted.
+- Simulations must not be passed to external services or used as evidence of real audience behavior.
 
 ## Future LLM integrations
 

@@ -12,7 +12,7 @@ Deterministic code owns orchestration, schema validation, scoring weights, trace
 | `extract_strategic_tension` | **Real (optional)** | `mock` (default) or `openai` |
 | `generate_campaign_routes` | **Real (optional)** | `mock` (default) or `openai` |
 | `build_personas` | **Real (optional)** | `mock` (default) or `openai` |
-| `simulate_reactions` | Mocked | — |
+| `simulate_reactions` | **Real (optional)** | `mock` (default) or `openai` |
 | `score_routes` | Deterministic | — |
 | `premortem_review` | Mocked | — |
 | `compare_routes` | Deterministic | — |
@@ -31,6 +31,7 @@ Real LLM code runs exclusively server-side:
 - `app/api/campaign/tension/route.ts` — strategic tension API endpoint. Consumes validated normalized briefs only.
 - `app/api/campaign/routes/route.ts` — route generation API endpoint. Consumes validated normalized brief and strategic tension only.
 - `app/api/campaign/personas/route.ts` — persona building API endpoint. Consumes validated normalized brief, strategic tension, and routes only.
+- `app/api/campaign/simulations/route.ts` — simulation API endpoint. Consumes validated normalized brief, strategic tension, routes, and personas only.
 
 Client components call API routes, not stage functions directly. The mock workflow (`lib/workflow/run-campaign-workflow.ts`) remains client-safe and uses no server-only imports.
 
@@ -74,6 +75,21 @@ All API routes catch typed LLM errors and return sanitized responses. Raw provid
 - Retries once on JSON parse or schema validation failure.
 - Prompt version: `build_personas.v1`.
 
+## `simulate_reactions` stage notes
+
+- Server-side only. Never exposed to the browser.
+- Consumes validated `NormalizedCampaignBrief`, `StrategicTension`, `CampaignRoute[]`, and `Persona[]` — does not accept raw brief text.
+- Generates exactly one simulation for every route/persona pair (full matrix coverage is required).
+- Simulations are synthetic planning devices. They are not real audience research, do not predict real behavior, and must never be presented as market validation, survey findings, or statistical evidence.
+- Scores (`resonanceScore`, `conversionIntent`, `signupIntent`) are bounded qualitative strategy scores (1–5), not probabilities.
+- `confidence` reflects certainty in the synthetic interpretation, not real-world outcome certainty.
+- Every simulation `caveat` must clearly label the reaction as synthetic.
+- Output is validated with `personaSimulationsOutputSchema` (Zod wrapper) before returning. Cross-reference coverage is validated with `validateSimulationCoverage` (in `lib/workflow/validate-simulations.ts`) after Zod validation.
+- `personaSimulationsOutputSchema` enforces unique route/persona pairs and the synthetic caveat via `.superRefine()`.
+- `validateSimulationCoverage` enforces that every route ID and persona ID matches an input item, and that no pair is missing or duplicated.
+- Retries once on JSON parse, schema validation, or coverage failure.
+- Prompt version: `simulate_reactions.v1`.
+
 ## Provider adapter
 
 `lib/llm/generate-json.ts` implements a minimal OpenAI adapter using the native `fetch` API. No OpenAI SDK dependency is added. Each stage function:
@@ -97,4 +113,4 @@ Later integrations should follow the same server boundary pattern: new stage fun
 
 ## Next stage
 
-The next real stage to implement is `simulate_reactions`. Implement with extra care — synthetic personas can easily be confused with real audience research. Enforce clear labeling at every layer.
+The next deterministic stage to consider is `score_routes`. It should consume the already-generated route and simulation data rather than requiring another LLM call. Route scoring uses simulation averages (resonance, conversion intent) and route-level risk counts to produce bounded qualitative scores — no real market data required.

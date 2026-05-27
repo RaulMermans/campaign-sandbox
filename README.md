@@ -58,7 +58,7 @@ See [docs/deployment.md](docs/deployment.md) for full instructions.
 2. Import repository in Vercel.
 3. Deploy without setting any environment variables.
 
-**Enable real brief normalization, tension extraction, route generation, and persona building:**
+**Enable real brief normalization, tension extraction, route generation, persona building, and simulation:**
 
 Set these in Vercel → Project → Settings → Environment Variables:
 
@@ -67,7 +67,7 @@ CAMPAIGN_SANDBOX_LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
 ```
 
-`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, and `build_personas` use the real provider. All later stages remain mocked. See [docs/deployment.md](docs/deployment.md) for the full variable list, safety notes, and how to test all four stages locally.
+`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, and `simulate_reactions` use the real provider. All later stages remain mocked. See [docs/deployment.md](docs/deployment.md) for the full variable list, safety notes, and how to test all five stages locally.
 
 ## Environment variables
 
@@ -87,11 +87,12 @@ The app builds and runs with no env vars set (defaults to mock mode). See `.env.
 | `extract_strategic_tension` | **Real (optional)** via server-side env |
 | `generate_campaign_routes` | **Real (optional)** via server-side env |
 | `build_personas` | **Real (optional)** via server-side env |
+| `simulate_reactions` | **Real (optional)** via server-side env |
 | All later stages | Mocked |
 
-All four real stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. The app builds and runs fully without any env vars (mock mode).
+All five real stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. The app builds and runs fully without any env vars (mock mode).
 
-`extract_strategic_tension` is strategic interpretation only — it does not use real market data or produce predictions. `generate_campaign_routes` generates strategic options for human review, not performance predictions — routes are decision support, not campaign forecasts. `build_personas` generates synthetic audience hypotheses for planning; personas are not real research, do not predict behavior, and must not be used for discriminatory targeting. Synthetic persona reactions and route scores are strategic estimates for decision support, not real market research or success predictions.
+`extract_strategic_tension` is strategic interpretation only — it does not use real market data or produce predictions. `generate_campaign_routes` generates strategic options for human review, not performance predictions — routes are decision support, not campaign forecasts. `build_personas` generates synthetic audience hypotheses for planning; personas are not real research, do not predict behavior, and must not be used for discriminatory targeting. `simulate_reactions` generates synthetic reactions for planning purposes — simulations are not real audience research, do not predict real behavior, and must never be used as market validation. Scores are bounded qualitative strategy scores, not probabilities. Route scores are deterministic strategic estimates.
 
 ## Project Structure
 
@@ -100,6 +101,7 @@ All four real stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_
 - `app/api/campaign/tension/` — Server-side strategic tension API route.
 - `app/api/campaign/routes/` — Server-side campaign route generation API route.
 - `app/api/campaign/personas/` — Server-side persona building API route.
+- `app/api/campaign/simulations/` — Server-side simulation API route.
 - `components/` — UI, brief, route, simulation, and trace components.
 - `lib/env.ts` — Server-side environment validation (never import in client components).
 - `lib/llm/` — LLM provider adapter (server-side only).
@@ -139,9 +141,7 @@ pnpm dev -- -p 3001
 
 ## Next Build Steps
 
-The next bounded LLM stage to implement is `simulate_reactions`. Implement with extra care — synthetic personas can easily be confused with real audience research. Enforce clear labeling at every layer.
-
-After that:
+- `score_routes` is the next deterministic API endpoint — it already has scoring logic and can be exposed as an API route consuming routes and simulations from upstream stages.
 - Add persisted campaign runs.
 - Add exportable artifacts.
 - Add Trigger.dev orchestration when background execution is needed.

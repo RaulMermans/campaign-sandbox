@@ -25,7 +25,7 @@ Trace events include a `promptVersion` field (e.g. `"normalize_brief.v1"`) so pr
 | `prompts/extract_strategic_tension.md` | `extract_strategic_tension` | Active — used in OpenAI mode |
 | `prompts/generate_campaign_routes.md` | `generate_campaign_routes` | Active — used in OpenAI mode |
 | `prompts/build_personas.md` | `build_personas` | Active — used in OpenAI mode |
-| `prompts/simulate_audience_reactions.md` | `simulate_reactions` | Mocked — not yet wired |
+| `prompts/simulate_audience_reactions.md` | `simulate_reactions` | Active — used in OpenAI mode |
 | `prompts/premortem_review.md` | `premortem_review` | Mocked — not yet wired |
 | `prompts/generate_execution_plan.md` | `generate_execution_plan` | Mocked — not yet wired |
 
@@ -56,6 +56,22 @@ The prompt for `build_personas.md` (version `build_personas.v1`):
 - Appends `NormalizedCampaignBrief`, `StrategicTension`, and `CampaignRoutes` as JSON under separate sections.
 - Output is validated with Zod before returning; retries once on parse or schema failure.
 - Uses an object wrapper (`{ "personas": [...] }`) because OpenAI JSON mode expects an object, not a top-level array.
+
+## `simulate_audience_reactions` prompt notes
+
+The prompt for `simulate_audience_reactions.md` (version `simulate_reactions.v1`):
+
+- Instructs the model to return JSON only — no prose, no markdown, no text before or after the object.
+- Maps to `personaSimulationsOutputSchema` (a Zod object wrapper around `z.array(personaSimulationSchema).min(1)` with cross-reference superRefine checks).
+- Requires exactly one simulation for every route/persona pair. If there are R routes and P personas, R × P simulations are required.
+- Scores (`resonanceScore`, `conversionIntent`, `signupIntent`) must be 1–5. They are bounded qualitative strategy scores, not probabilities.
+- `confidence` is `"low"`, `"medium"`, or `"high"` — reflects certainty in the synthetic interpretation only.
+- Every `caveat` must explicitly state the reaction is synthetic and is not real audience research.
+- Prohibits inventing survey data, social data, purchase history, market data, or test results.
+- Prohibits using protected-class characteristics as targeting or reasoning criteria.
+- Appends `NormalizedCampaignBrief`, `StrategicTension`, `CampaignRoutes`, and `Personas` as JSON under separate sections.
+- Output is validated with Zod and `validateSimulationCoverage` before returning; retries once on parse, schema, or coverage failure.
+- Uses an object wrapper (`{ "simulations": [...] }`) because OpenAI JSON mode expects an object, not a top-level array.
 
 ## `extract_strategic_tension` prompt notes
 

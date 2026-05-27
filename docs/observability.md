@@ -34,6 +34,7 @@ Mock providers always set `costUsd: 0`. Token counts are `undefined` in mock mod
 - `extract_strategic_tension`: `"mock-strategic-tension"`
 - `generate_campaign_routes`: `"mock-route-generator"`
 - `build_personas`: `"mock-persona-builder"`
+- `simulate_reactions`: `"mock-reaction-simulator"`
 
 ## What is not logged
 
@@ -53,6 +54,7 @@ V1 stores trace events in mock run objects only. Later versions should persist t
 | `extract_strategic_tension` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | `generate_campaign_routes` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | `build_personas` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
+| `simulate_reactions` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | All other stages | Mock trace events only |
 
-All four real stages emit `provider`, `model`, `promptVersion`, `inputTokens`, `outputTokens`, and `durationMs` in their trace events.
+All five real stages emit `provider`, `model`, `promptVersion`, `inputTokens`, `outputTokens`, and `durationMs` in their trace events.

@@ -272,6 +272,45 @@ export const personasOutputSchema = z
 
 export type PersonasOutput = z.infer<typeof personasOutputSchema>;
 
+// Wrapper for persona simulations output.
+// Simulations are synthetic planning devices, not real audience research.
+// Enforces: at least one simulation, unique route/persona pairs, and
+// each caveat must clearly label the reaction as synthetic.
+// Full route/persona matrix coverage is enforced at the stage level
+// (validateSimulationCoverage) because the schema does not know the input sets.
+export const personaSimulationsOutputSchema = z
+  .object({
+    simulations: z.array(personaSimulationSchema).min(1),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    const pairKeys = new Set<string>();
+
+    for (const simulation of value.simulations) {
+      const key = `${simulation.routeId}:${simulation.personaId}`;
+
+      if (pairKeys.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["simulations"],
+          message: "Each route/persona simulation pair must be unique.",
+        });
+      }
+
+      pairKeys.add(key);
+
+      if (!simulation.caveat.toLowerCase().includes("synthetic")) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["simulations"],
+          message: "Each simulation caveat must clearly label the reaction as synthetic.",
+        });
+      }
+    }
+  });
+
+export type PersonaSimulationsOutput = z.infer<typeof personaSimulationsOutputSchema>;
+
 export type RawCampaignBrief = z.infer<typeof rawCampaignBriefSchema>;
 export type NormalizedCampaignBrief = z.infer<typeof normalizedCampaignBriefSchema>;
 export type StrategicTension = z.infer<typeof strategicTensionSchema>;

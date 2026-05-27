@@ -164,7 +164,12 @@ export const campaignPersonas: Persona[] = [
   },
 ];
 
-const simulations: PersonaSimulation[] = [
+// Full deterministic 3×3 route/persona simulation matrix.
+// Every route/persona pair must have exactly one entry.
+// All caveats must contain the word "synthetic".
+// These are planning devices, not real audience research.
+export const personaSimulations: PersonaSimulation[] = [
+  // route-quiet-itinerary × all three personas
   {
     routeId: "route-quiet-itinerary",
     personaId: "persona-creative-director",
@@ -176,7 +181,47 @@ const simulations: PersonaSimulation[] = [
     conversionIntent: 4.1,
     signupIntent: 3.8,
     confidence: "medium",
-    caveat: "Synthetic estimate, not market research.",
+    caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+  },
+  {
+    routeId: "route-quiet-itinerary",
+    personaId: "persona-design-student",
+    likelyReaction: "Appreciates the restraint but may need a more direct entry point to the product.",
+    positives: ["elevated aesthetic", "looks shareable as a still image"],
+    objections: ["could feel distant if no clear product visibility", "less culturally edgy than expected"],
+    quotedReaction: "Beautiful but I need to see what I would actually wear.",
+    resonanceScore: 3.8,
+    conversionIntent: 3.2,
+    signupIntent: 3.5,
+    confidence: "low",
+    caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+  },
+  {
+    routeId: "route-quiet-itinerary",
+    personaId: "persona-startup-operator",
+    likelyReaction: "Responds well to the everyday-utility angle, but needs a clearer path to shop.",
+    positives: ["calm visual language matches their self-image", "not overwhelming"],
+    objections: ["may not trigger urgency to buy", "unclear which pieces to start with"],
+    quotedReaction: "This is the kind of thing I would save and then never click through on.",
+    resonanceScore: 3.6,
+    conversionIntent: 3.4,
+    signupIntent: 3.3,
+    confidence: "low",
+    caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+  },
+  // route-between-addresses × all three personas
+  {
+    routeId: "route-between-addresses",
+    personaId: "persona-creative-director",
+    likelyReaction: "Engages with the concept intellectually but wants more visible brand authority.",
+    positives: ["strong conceptual point of view", "feels culturally current"],
+    objections: ["risk of concept overshadowing the product", "needs extremely sharp execution"],
+    quotedReaction: "I get the idea, now show me the brand behind it.",
+    resonanceScore: 4.2,
+    conversionIntent: 3.6,
+    signupIntent: 3.9,
+    confidence: "medium",
+    caveat: "Synthetic planning estimate. Not real audience research or market validation.",
   },
   {
     routeId: "route-between-addresses",
@@ -189,7 +234,47 @@ const simulations: PersonaSimulation[] = [
     conversionIntent: 3.4,
     signupIntent: 4.2,
     confidence: "medium",
-    caveat: "Synthetic estimate, not market research.",
+    caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+  },
+  {
+    routeId: "route-between-addresses",
+    personaId: "persona-startup-operator",
+    likelyReaction: "Connects with the remote-work framing but wants the product to be more visible.",
+    positives: ["language mirrors their actual day", "participation format is familiar"],
+    objections: ["needs a clearer product hook", "concept may not justify premium price point"],
+    quotedReaction: "Yes, this is my life. But what am I buying exactly?",
+    resonanceScore: 4.1,
+    conversionIntent: 3.3,
+    signupIntent: 4.0,
+    confidence: "low",
+    caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+  },
+  // route-uniform-for-motion × all three personas
+  {
+    routeId: "route-uniform-for-motion",
+    personaId: "persona-creative-director",
+    likelyReaction: "Sees the utility clearly but worries the approach is too catalog-forward for the brand.",
+    positives: ["product is unmistakably visible", "easy to shop from day one"],
+    objections: ["less aspirational than NODO's usual register", "could read as too commercial"],
+    quotedReaction: "It works, but I hope NODO does not stop there.",
+    resonanceScore: 3.7,
+    conversionIntent: 4.2,
+    signupIntent: 3.5,
+    confidence: "medium",
+    caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+  },
+  {
+    routeId: "route-uniform-for-motion",
+    personaId: "persona-design-student",
+    likelyReaction: "Appreciates the outfit-building clarity but may feel it is too safe for their identity.",
+    positives: ["easy to understand the product edit", "clear use case for daily life"],
+    objections: ["not distinctive enough to share", "could be any elevated-basics brand"],
+    quotedReaction: "Makes sense. I would just need a reason to choose NODO over anyone else.",
+    resonanceScore: 3.5,
+    conversionIntent: 3.7,
+    signupIntent: 3.4,
+    confidence: "low",
+    caveat: "Synthetic planning estimate. Not real audience research or market validation.",
   },
   {
     routeId: "route-uniform-for-motion",
@@ -198,11 +283,11 @@ const simulations: PersonaSimulation[] = [
     positives: ["use-case clarity", "high purchase path clarity"],
     objections: ["less culturally memorable"],
     quotedReaction: "This is the one I would actually shop from.",
-    resonanceScore: 4,
+    resonanceScore: 4.0,
     conversionIntent: 4.6,
     signupIntent: 4.4,
     confidence: "medium",
-    caveat: "Synthetic estimate, not market research.",
+    caveat: "Synthetic planning estimate. Not real audience research or market validation.",
   },
 ];
 
@@ -322,7 +407,7 @@ function buildTraceEvents(runId: string, status: "awaiting_selection" | "complet
 export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRun {
   const now = new Date().toISOString();
   const runId = "mock-nodo-run";
-  const scores = scoreRoutes(campaignRoutes, simulations);
+  const scores = scoreRoutes(campaignRoutes, personaSimulations);
 
   return {
     id: runId,
@@ -334,7 +419,7 @@ export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRu
     strategicTension,
     routes: campaignRoutes,
     personas: campaignPersonas,
-    simulations,
+    simulations: personaSimulations,
     scores,
     premortem,
     comparisonMatrix: buildComparisonMatrix(scores),
@@ -347,7 +432,7 @@ export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRu
 export function buildMockCompletedCampaignRun(selectedRouteId = "route-quiet-itinerary", messyBrief = NODO_SAMPLE_BRIEF): CampaignRun {
   const now = new Date().toISOString();
   const runId = "mock-nodo-run";
-  const scores = scoreRoutes(campaignRoutes, simulations);
+  const scores = scoreRoutes(campaignRoutes, personaSimulations);
 
   return {
     id: runId,
@@ -359,7 +444,7 @@ export function buildMockCompletedCampaignRun(selectedRouteId = "route-quiet-iti
     strategicTension,
     routes: campaignRoutes,
     personas: campaignPersonas,
-    simulations,
+    simulations: personaSimulations,
     scores,
     premortem,
     comparisonMatrix: buildComparisonMatrix(scores),
