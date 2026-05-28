@@ -13,7 +13,7 @@ Deterministic code owns orchestration, schema validation, scoring weights, trace
 | `generate_campaign_routes` | **Real (optional)** | `mock` (default) or `openai` |
 | `build_personas` | **Real (optional)** | `mock` (default) or `openai` |
 | `simulate_reactions` | **Real (optional)** | `mock` (default) or `openai` |
-| `score_routes` | Deterministic | — |
+| `score_routes` | **Deterministic** | `deterministic` (no LLM) |
 | `premortem_review` | Mocked | — |
 | `compare_routes` | Deterministic | — |
 | `human_selection` | Human gate | — |
@@ -32,12 +32,13 @@ Real LLM code runs exclusively server-side:
 - `app/api/campaign/routes/route.ts` — route generation API endpoint. Consumes validated normalized brief and strategic tension only.
 - `app/api/campaign/personas/route.ts` — persona building API endpoint. Consumes validated normalized brief, strategic tension, and routes only.
 - `app/api/campaign/simulations/route.ts` — simulation API endpoint. Consumes validated normalized brief, strategic tension, routes, and personas only.
+- `app/api/campaign/scores/route.ts` — scoring API endpoint. Deterministic. Consumes validated routes, personas, and simulations. Does not call an LLM. Works without `OPENAI_API_KEY`.
 
 Client components call API routes, not stage functions directly. The mock workflow (`lib/workflow/run-campaign-workflow.ts`) remains client-safe and uses no server-only imports.
 
 ## API error safety
 
-All API routes catch typed LLM errors and return sanitized responses. Raw provider output, model text, stack traces, and API keys are never returned to clients. Error responses use the shape `{ error: "LLM stage failed.", code: "LLM_PROVIDER_ERROR" | "LLM_JSON_PARSE_ERROR" | "LLM_SCHEMA_VALIDATION_ERROR" }`. Validation errors include path and message details for developer use but no raw model content.
+All API routes catch typed errors and return sanitized responses. Raw provider output, model text, stack traces, and API keys are never returned to clients. LLM error responses use the shape `{ error: "LLM stage failed.", code: "LLM_PROVIDER_ERROR" | "LLM_JSON_PARSE_ERROR" | "LLM_SCHEMA_VALIDATION_ERROR" }`. Deterministic workflow errors use `{ error: "Route scoring validation failed.", code: "WORKFLOW_VALIDATION_ERROR", issues: [...] }`. Validation errors include path and message details for developer use but no raw model content or stack traces.
 
 ## `extract_strategic_tension` stage notes
 
@@ -90,6 +91,21 @@ All API routes catch typed LLM errors and return sanitized responses. Raw provid
 - Retries once on JSON parse, schema validation, or coverage failure.
 - Prompt version: `simulate_reactions.v1`.
 
+## `score_routes` stage notes
+
+- Server-side only. Never exposed to the browser.
+- **Deterministic.** Does not call an LLM. Does not read `CAMPAIGN_SANDBOX_LLM_PROVIDER`. Works without `OPENAI_API_KEY`.
+- Consumes validated `CampaignRoute[]`, `Persona[]`, and `PersonaSimulation[]` — does not require the full brief or strategic tension.
+- Scores use simulation data (average resonance score, average conversion intent, objection count) combined with role-default weights per strategic role (`safest`, `boldest`, `conversion`).
+- All individual scores and `weightedTotal` are bounded to [1, 5] and rounded to one decimal place.
+- Scores are bounded qualitative strategic estimates, not probabilities or predictions. They support human route comparison; they do not replace judgment.
+- Validates simulation coverage with `validateSimulationCoverage` before scoring.
+- Validates output against `routeScoresOutputSchema` (Zod wrapper) after scoring.
+- Validates score coverage with `validateRouteScoreCoverage` (in `lib/workflow/validate-route-scores.ts`) after schema validation.
+- Throws `WorkflowValidationError` (not `LlmSchemaValidationError`) on coverage failures.
+- Trace event: `provider: "deterministic"`, `model: "score-routes-v1"`, `costUsd: 0`, `promptVersion: undefined`.
+- API: `POST /api/campaign/scores` — accepts `{ routes, personas, simulations }` (bare arrays or wrappers).
+
 ## Provider adapter
 
 `lib/llm/generate-json.ts` implements a minimal OpenAI adapter using the native `fetch` API. No OpenAI SDK dependency is added. Each stage function:
@@ -113,4 +129,4 @@ Later integrations should follow the same server boundary pattern: new stage fun
 
 ## Next stage
 
-The next deterministic stage to consider is `score_routes`. It should consume the already-generated route and simulation data rather than requiring another LLM call. Route scoring uses simulation averages (resonance, conversion intent) and route-level risk counts to produce bounded qualitative scores — no real market data required.
+The next stage to implement is `premortem_review`. It can use an LLM and should consume route scores and simulations to identify failure modes, weak assumptions, and mitigations per route — and then overall. Human selection remains required before final plan generation.

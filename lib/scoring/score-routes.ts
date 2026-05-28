@@ -1,3 +1,7 @@
+// Pure deterministic scoring helper. No LLM calls, no env vars, no side effects.
+// Assumes valid, fully-covered input: call validateSimulationCoverage and
+// validateRouteScoreCoverage at the stage level before and after invoking this.
+// Scores are bounded qualitative strategic estimates (1–5), not probabilities or predictions.
 import type { CampaignRoute, PersonaSimulation, RouteScore } from "@/lib/schemas/campaign";
 
 const roleDefaults: Record<CampaignRoute["strategicRole"], Omit<RouteScore["scores"], "riskAdjustedConfidence">> = {

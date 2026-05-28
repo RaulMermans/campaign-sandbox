@@ -38,13 +38,13 @@ Validation errors include path and message for developer use but contain no raw 
 
 ## What remains synthetic
 
-Even when all five real stages use a real provider:
+Even when all six real stages use a real provider (or deterministic engine):
 
-- All stages after `simulate_reactions` remain mocked.
+- All stages after `score_routes` remain mocked.
 - `generate_campaign_routes` generates strategic options, not market predictions. It does not use real market data.
 - Routes are decision-support material, not campaign performance forecasts.
 - Persona reactions are synthetic, not real audience research.
-- Route scores are strategic estimates from deterministic scoring logic.
+- Route scores are bounded strategic estimates from deterministic scoring logic. They are not predictions, probabilities, or market research.
 - The pre-mortem and comparison matrix are generated from mock data.
 - The execution plan is built from mock routes and scores.
 
@@ -90,6 +90,18 @@ Even when all five real stages use a real provider:
 - Cross-reference coverage is validated with `validateSimulationCoverage` — unknown route/persona IDs and missing pairs are rejected as `LlmSchemaValidationError`.
 - Full matrix coverage (every route/persona pair) is required. Partial simulation sets are not accepted.
 - Simulations must not be passed to external services or used as evidence of real audience behavior.
+
+## `score_routes` safety rules
+
+- Deterministic. Does not call an LLM. Does not use `OPENAI_API_KEY`. Works in all provider modes.
+- Scores are bounded qualitative strategic estimates (1–5). They are not probabilities, success predictions, or market research.
+- Scores support human route comparison and selection — they do not replace judgment.
+- All score dimensions and `weightedTotal` are clamped to [1, 5] in code.
+- No exact success probabilities are produced. No real historical data is claimed.
+- Full simulation coverage (every route/persona pair) is required before scoring. Missing or unknown pairs throw `WorkflowValidationError` — not silently scored.
+- Score coverage (one score per route, no duplicates) is validated after scoring.
+- Trace event labels the provider as `"deterministic"` so it is distinguishable from LLM stages.
+- Scores must not be presented as conversion predictions, A/B test results, or market validation.
 
 ## Future LLM integrations
 

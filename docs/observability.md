@@ -55,6 +55,9 @@ V1 stores trace events in mock run objects only. Later versions should persist t
 | `generate_campaign_routes` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | `build_personas` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | `simulate_reactions` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
+| `score_routes` | Always: `provider: "deterministic"`, `model: "score-routes-v1"`, `costUsd: 0`, `promptVersion: undefined` |
 | All other stages | Mock trace events only |
 
-All five real stages emit `provider`, `model`, `promptVersion`, `inputTokens`, `outputTokens`, and `durationMs` in their trace events.
+The five LLM stages emit `provider`, `model`, `promptVersion`, `inputTokens`, `outputTokens`, and `durationMs` in their trace events.
+
+The `score_routes` stage is deterministic and always emits `provider: "deterministic"` and `model: "score-routes-v1"`. Token fields are not applicable (`inputTokens` and `outputTokens` are omitted). `costUsd` is always 0. `promptVersion` is not applicable. `metadata` includes `scoringMode`, `routeCount`, and `simulationCount`.

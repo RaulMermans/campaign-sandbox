@@ -139,6 +139,28 @@ export const routeScoreSchema = z
   })
   .strict();
 
+// Wrapper for route scores output.
+// Scores are bounded qualitative strategic estimates (1–5), not probabilities or predictions.
+// Enforces: at least one score and unique route IDs.
+export const routeScoresOutputSchema = z
+  .object({
+    scores: z.array(routeScoreSchema).min(1),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    const routeIds = new Set(value.scores.map((score) => score.routeId));
+
+    if (routeIds.size !== value.scores.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["scores"],
+        message: "Route scores must include unique route IDs.",
+      });
+    }
+  });
+
+export type RouteScoresOutput = z.infer<typeof routeScoresOutputSchema>;
+
 export const premortemReviewSchema = z
   .object({
     summary: z.string().min(1),
