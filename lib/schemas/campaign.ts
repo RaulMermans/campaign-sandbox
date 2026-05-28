@@ -180,6 +180,14 @@ export const premortemReviewSchema = z
   })
   .strict();
 
+export const premortemReviewOutputSchema = z
+  .object({
+    review: premortemReviewSchema,
+  })
+  .strict();
+
+export type PremortemReviewOutput = z.infer<typeof premortemReviewOutputSchema>;
+
 export const routeComparisonMatrixSchema = z
   .object({
     criteria: z.array(z.string().min(1)).min(1),

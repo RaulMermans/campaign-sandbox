@@ -14,8 +14,8 @@ Deterministic code owns orchestration, schema validation, scoring weights, trace
 | `build_personas` | **Real (optional)** | `mock` (default) or `openai` |
 | `simulate_reactions` | **Real (optional)** | `mock` (default) or `openai` |
 | `score_routes` | **Deterministic** | `deterministic` (no LLM) |
-| `premortem_review` | Mocked | — |
-| `compare_routes` | Deterministic | — |
+| `premortem_review` | **Real (optional)** | `mock` (default) or `openai` |
+| `compare_routes` | Mocked | — |
 | `human_selection` | Human gate | — |
 | `generate_execution_plan` | Mocked | — |
 | `export_artifact` | Placeholder | — |
@@ -33,6 +33,7 @@ Real LLM code runs exclusively server-side:
 - `app/api/campaign/personas/route.ts` — persona building API endpoint. Consumes validated normalized brief, strategic tension, and routes only.
 - `app/api/campaign/simulations/route.ts` — simulation API endpoint. Consumes validated normalized brief, strategic tension, routes, and personas only.
 - `app/api/campaign/scores/route.ts` — scoring API endpoint. Deterministic. Consumes validated routes, personas, and simulations. Does not call an LLM. Works without `OPENAI_API_KEY`.
+- `app/api/campaign/premortem/route.ts` — pre-mortem review API endpoint. Consumes validated normalizedBrief, strategicTension, routes, personas, simulations, and scores. Returns structured risk review and trace event.
 
 Client components call API routes, not stage functions directly. The mock workflow (`lib/workflow/run-campaign-workflow.ts`) remains client-safe and uses no server-only imports.
 
@@ -127,6 +128,20 @@ All stage outputs are validated with Zod schemas in `lib/schemas/campaign.ts`. U
 
 Later integrations should follow the same server boundary pattern: new stage function → new API route → validated schema → trace event → tests.
 
+## `premortem_review` stage notes
+
+- Server-side only. Never exposed to the browser.
+- Consumes validated `NormalizedCampaignBrief`, `StrategicTension`, `CampaignRoute[]`, `Persona[]`, `PersonaSimulation[]`, and `RouteScore[]`.
+- Produces a structured risk review: `summary`, one `routeRisk` per route, `overallRisks`, and `decisionWarnings`.
+- This is a strategic risk analysis, not market research. Synthetic reactions and scores are planning hypotheses only.
+- Must never claim campaign success probability or present synthetic data as validated customer evidence.
+- Output is validated with `premortemReviewOutputSchema` (Zod wrapper) before returning.
+- Coverage is validated with `validatePremortemCoverage` (in `lib/workflow/validate-premortem.ts`) after Zod validation — every input route must have exactly one `routeRisk` entry.
+- Coverage failures throw `WorkflowValidationError`.
+- Retries once on JSON parse, schema validation, or coverage failure.
+- Prompt version: `premortem_review.v1`.
+- API: `POST /api/campaign/premortem` — accepts bare arrays or wrapper objects for routes/personas/simulations/scores.
+
 ## Next stage
 
-The next stage to implement is `premortem_review`. It can use an LLM and should consume route scores and simulations to identify failure modes, weak assumptions, and mitigations per route — and then overall. Human selection remains required before final plan generation.
+The next stage to implement is `compare_routes`. It should be deterministic and use routes, simulations, scores, and premortem output to create the comparison matrix. Human selection remains required before final plan generation.

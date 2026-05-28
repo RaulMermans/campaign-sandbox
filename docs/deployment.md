@@ -49,7 +49,7 @@ Deploy without setting any environment variables. The app runs fully in mock mod
 - No OpenAI calls are made.
 - No secrets are required.
 
-### Enabling real brief normalization, tension extraction, route generation, persona building, and simulation (OpenAI)
+### Enabling real brief normalization, tension extraction, route generation, persona building, simulation, and pre-mortem review (OpenAI)
 
 Set both variables in Vercel:
 
@@ -66,11 +66,12 @@ With this configuration:
 - `POST /api/campaign/personas` calls OpenAI and returns 3–6 synthetic personas (takes a normalized brief, strategic tension, and routes as input). Personas are synthetic audience hypotheses for planning — not real research.
 - `POST /api/campaign/simulations` calls OpenAI and returns one synthetic reaction per route/persona pair (takes a normalized brief, strategic tension, routes, and personas as input). Simulations are synthetic planning devices — not real audience research, not market validation.
 - `POST /api/campaign/scores` is always deterministic — it does not call OpenAI regardless of provider setting. It takes routes, personas, and simulations as input and returns bounded strategic estimates.
-- The main workflow UI still uses mocked strategy outputs for all other stages.
-- Only `normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, and `simulate_reactions` use the LLM — `score_routes` is deterministic and everything after it remains mocked.
+- `POST /api/campaign/premortem` calls OpenAI and returns a structured risk review (takes normalizedBrief, strategicTension, routes, personas, simulations, and scores as input). The pre-mortem is a strategic risk analysis — not market research, not a success prediction.
+- The main workflow UI still uses mocked strategy outputs for all stages after `premortem_review`.
+- Only `normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, `simulate_reactions`, and `premortem_review` use the LLM — `score_routes` is deterministic and everything after `premortem_review` remains mocked.
 - The Vercel build does not require the API key; only runtime LLM API calls do.
 
-### Testing the six-stage path locally
+### Testing the seven-stage path locally
 
 ```bash
 # Step 1: Normalize a brief
@@ -102,13 +103,18 @@ curl -X POST http://localhost:3000/api/campaign/simulations \
 curl -X POST http://localhost:3000/api/campaign/scores \
   -H "Content-Type: application/json" \
   -d '{"routes": [ ... ], "personas": [ ... ], "simulations": [ ... ]}'
+
+# Step 7: Pass all six validated outputs to the pre-mortem route
+curl -X POST http://localhost:3000/api/campaign/premortem \
+  -H "Content-Type: application/json" \
+  -d '{"normalizedBrief": { ... }, "strategicTension": { ... }, "routes": [ ... ], "personas": [ ... ], "simulations": [ ... ], "scores": [ ... ]}'
 ```
 
-All six routes work in mock mode without any environment variables. The scores route works in all modes without any env vars.
+All seven routes work in mock mode without any environment variables. The scores route works in all modes without any env vars.
 
 ## Current limitations
 
-- **Only `normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, and `simulate_reactions` can use a real LLM provider.** `score_routes` is deterministic. All stages after `score_routes` (pre-mortem, comparison, execution plan) remain mocked.
+- **Only `normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, `simulate_reactions`, and `premortem_review` can use a real LLM provider.** `score_routes` is deterministic. All stages after `premortem_review` (comparison, execution plan) remain mocked.
 - **`score_routes` produces bounded qualitative strategic estimates only.** Scores are in [1, 5] and are not probabilities, success predictions, or market research. They support human comparison and selection.
 - **`simulate_reactions` generates synthetic planning reactions only.** Simulations are not real audience research, do not predict real behavior, and must never be presented as market validation or conversion evidence. Scores are bounded qualitative estimates, not probabilities.
 - **`build_personas` generates synthetic planning hypotheses only.** Personas are not real audience research, do not predict behavior, and must not be used for discriminatory targeting.
@@ -131,13 +137,16 @@ Server-side only (never exposed to the browser):
 - `lib/workflow/stages/simulate-reactions.ts` — simulation stage
 - `lib/workflow/validate-simulations.ts` — simulation coverage validator
 - `lib/workflow/validate-route-scores.ts` — route score coverage validator
+- `lib/workflow/validate-premortem.ts` — premortem coverage validator
 - `lib/workflow/stages/score-routes-stage.ts` — deterministic scoring stage
+- `lib/workflow/stages/premortem-review.ts` — premortem review stage
 - `app/api/campaign/normalize/route.ts` — normalization API endpoint
 - `app/api/campaign/tension/route.ts` — tension API endpoint
 - `app/api/campaign/routes/route.ts` — route generation API endpoint
 - `app/api/campaign/personas/route.ts` — persona building API endpoint
 - `app/api/campaign/simulations/route.ts` — simulation API endpoint
 - `app/api/campaign/scores/route.ts` — deterministic scoring API endpoint
+- `app/api/campaign/premortem/route.ts` — premortem review API endpoint
 
 Client-safe (no secrets):
 
@@ -150,4 +159,4 @@ Client-safe (no secrets):
 
 ## Next deployment steps
 
-The next stage to implement is `premortem_review`. It can use an LLM and should consume route scores and simulations to identify failure modes, weak assumptions, and mitigations per route — and then overall. Human selection remains required before final plan generation.
+The next stage to implement is `compare_routes`. It should be deterministic, consuming routes, simulations, scores, and premortem output to create the comparison matrix. Human selection remains required before final plan generation.

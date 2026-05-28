@@ -26,7 +26,7 @@ Trace events include a `promptVersion` field (e.g. `"normalize_brief.v1"`) so pr
 | `prompts/generate_campaign_routes.md` | `generate_campaign_routes` | Active — used in OpenAI mode |
 | `prompts/build_personas.md` | `build_personas` | Active — used in OpenAI mode |
 | `prompts/simulate_audience_reactions.md` | `simulate_reactions` | Active — used in OpenAI mode |
-| `prompts/premortem_review.md` | `premortem_review` | Mocked — not yet wired |
+| `prompts/premortem_review.md` | `premortem_review` | Active — used in OpenAI mode |
 | `prompts/generate_execution_plan.md` | `generate_execution_plan` | Mocked — not yet wired |
 
 ## `generate_campaign_routes` prompt notes
@@ -83,6 +83,22 @@ The prompt for `extract_strategic_tension.md` (version `extract_strategic_tensio
 - Requires `avoid` to be campaign-specific (not generic advice).
 - Appends the full `NormalizedCampaignBrief` as JSON under a `## NORMALIZED BRIEF` section.
 - Output is validated with Zod before returning; retries once on parse or schema failure.
+
+## `premortem_review` prompt notes
+
+The prompt for `premortem_review.md` (version `premortem_review.v1`):
+
+- Instructs the model to return JSON only — no prose, no markdown, no text before or after the object.
+- Maps to `premortemReviewOutputSchema` (a Zod object wrapper around `premortemReviewSchema`).
+- Requires exactly one `routeRisk` entry per input route. Uses only the route IDs provided — no invented routes.
+- Each `routeRisk` must include at least two specific risks and at least two actionable mitigations.
+- `overallRisks` and `decisionWarnings` must each contain at least two items.
+- Instructs the model to be critical — not to flatter every route. Identifies: weak assumptions, cliché risks, feasibility issues, cultural risks, conversion risks, and channel risks.
+- Explicitly prohibits claiming campaign success probability or treating synthetic data as real customer evidence.
+- Synthetic reactions and route scores are used as supporting evidence only — never as proof of market outcomes.
+- Appends `NormalizedCampaignBrief`, `StrategicTension`, `CampaignRoutes`, `Personas`, `Simulations`, and `RouteScores` as JSON under separate sections.
+- Output is validated with Zod and `validatePremortemCoverage` before returning; retries once on parse, schema, or coverage failure.
+- Uses an object wrapper (`{ "review": { ... } }`) because OpenAI JSON mode expects an object.
 
 ## Output format requirements (all prompts)
 

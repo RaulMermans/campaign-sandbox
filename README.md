@@ -67,7 +67,7 @@ CAMPAIGN_SANDBOX_LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
 ```
 
-`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, and `simulate_reactions` use the real provider. `score_routes` is always deterministic. All other stages remain mocked. See [docs/deployment.md](docs/deployment.md) for the full variable list, safety notes, and how to test all six stages locally.
+`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, `simulate_reactions`, and `premortem_review` use the real provider. `score_routes` is always deterministic. All other stages remain mocked. See [docs/deployment.md](docs/deployment.md) for the full variable list, safety notes, and how to test all seven stages locally.
 
 ## Environment variables
 
@@ -89,11 +89,12 @@ The app builds and runs with no env vars set (defaults to mock mode). See `.env.
 | `build_personas` | **Real (optional)** via server-side env |
 | `simulate_reactions` | **Real (optional)** via server-side env |
 | `score_routes` | **Deterministic** (no LLM, no env vars needed) |
+| `premortem_review` | **Real (optional)** via server-side env |
 | All later stages | Mocked |
 
-The five LLM stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. `score_routes` is deterministic and works in all modes without any env vars. The app builds and runs fully without any env vars (mock mode).
+The six LLM stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. `score_routes` is deterministic and works in all modes without any env vars. The app builds and runs fully without any env vars (mock mode).
 
-`score_routes` produces bounded qualitative strategic estimates (1–5) — not probabilities, not predictions. Scores support human route comparison and selection; they do not replace judgment. `simulate_reactions` generates synthetic reactions for planning purposes — simulations are not real audience research, do not predict real behavior, and must never be used as market validation. `build_personas` generates synthetic audience hypotheses for planning; personas are not real research and must not be used for discriminatory targeting. `generate_campaign_routes` generates strategic options, not performance predictions.
+`score_routes` produces bounded qualitative strategic estimates (1–5) — not probabilities, not predictions. Scores support human route comparison and selection; they do not replace judgment. `premortem_review` produces a structured risk analysis — not market research, not a success prediction. Synthetic reactions and scores used in the pre-mortem are planning hypotheses only. `simulate_reactions` generates synthetic reactions for planning purposes — simulations are not real audience research, do not predict real behavior, and must never be used as market validation. `build_personas` generates synthetic audience hypotheses for planning; personas are not real research and must not be used for discriminatory targeting. `generate_campaign_routes` generates strategic options, not performance predictions.
 
 ## Project Structure
 
@@ -104,6 +105,7 @@ The five LLM stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_A
 - `app/api/campaign/personas/` — Server-side persona building API route.
 - `app/api/campaign/simulations/` — Server-side simulation API route.
 - `app/api/campaign/scores/` — Deterministic scoring API route (no LLM).
+- `app/api/campaign/premortem/` — Pre-mortem risk review API route.
 - `components/` — UI, brief, route, simulation, and trace components.
 - `lib/env.ts` — Server-side environment validation (never import in client components).
 - `lib/llm/` — LLM provider adapter (server-side only).
@@ -143,7 +145,7 @@ pnpm dev -- -p 3001
 
 ## Next Build Steps
 
-- `premortem_review` is the next stage — it can use an LLM and should consume route scores and simulations to identify failure modes, weak assumptions, and mitigations.
+- `compare_routes` is the next stage — it should be deterministic and use routes, simulations, scores, and premortem output to create the comparison matrix.
 - Add persisted campaign runs.
 - Add exportable artifacts.
 - Add Trigger.dev orchestration when background execution is needed.

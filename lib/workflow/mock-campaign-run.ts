@@ -291,7 +291,7 @@ export const personaSimulations: PersonaSimulation[] = [
   },
 ];
 
-const premortem: PremortemReview = {
+export const premortemReview: PremortemReview = {
   summary:
     "The campaign is most likely to fail if it becomes visually generic, hides the clothes behind concept, or overclaims synthetic audience insight.",
   routeRisks: [
@@ -421,7 +421,7 @@ export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRu
     personas: campaignPersonas,
     simulations: personaSimulations,
     scores,
-    premortem,
+    premortem: premortemReview,
     comparisonMatrix: buildComparisonMatrix(scores),
     traceEvents: buildTraceEvents(runId, "awaiting_selection"),
     disclaimer:
@@ -446,7 +446,7 @@ export function buildMockCompletedCampaignRun(selectedRouteId = "route-quiet-iti
     personas: campaignPersonas,
     simulations: personaSimulations,
     scores,
-    premortem,
+    premortem: premortemReview,
     comparisonMatrix: buildComparisonMatrix(scores),
     humanSelection: {
       selectedRouteId,

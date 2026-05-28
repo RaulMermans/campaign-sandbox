@@ -12,7 +12,7 @@ Campaign Sandbox is decision support, not real market research.
 
 ## LLM stage rules
 
-These rules apply to all real LLM stages (`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, `simulate_reactions`, and future stages):
+These rules apply to all real LLM stages (`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, `simulate_reactions`, `premortem_review`, and future stages):
 
 - Prompts must instruct the model to preserve uncertainty as open questions, not convert it to fabricated certainty.
 - Prompts must not request probability claims or market predictions.
@@ -38,15 +38,15 @@ Validation errors include path and message for developer use but contain no raw 
 
 ## What remains synthetic
 
-Even when all six real stages use a real provider (or deterministic engine):
+Even when all seven real stages use a real provider (or deterministic engine):
 
-- All stages after `score_routes` remain mocked.
+- All stages after `premortem_review` remain mocked.
 - `generate_campaign_routes` generates strategic options, not market predictions. It does not use real market data.
 - Routes are decision-support material, not campaign performance forecasts.
 - Persona reactions are synthetic, not real audience research.
 - Route scores are bounded strategic estimates from deterministic scoring logic. They are not predictions, probabilities, or market research.
-- The pre-mortem and comparison matrix are generated from mock data.
-- The execution plan is built from mock routes and scores.
+- The pre-mortem review is a structured risk analysis — not market research, not a success prediction.
+- The comparison matrix and execution plan are built from mock data.
 
 ## `extract_strategic_tension` safety rules
 
@@ -102,6 +102,17 @@ Even when all six real stages use a real provider (or deterministic engine):
 - Score coverage (one score per route, no duplicates) is validated after scoring.
 - Trace event labels the provider as `"deterministic"` so it is distinguishable from LLM stages.
 - Scores must not be presented as conversion predictions, A/B test results, or market validation.
+
+## `premortem_review` safety rules
+
+- The stage consumes validated `NormalizedCampaignBrief`, `StrategicTension`, `CampaignRoute[]`, `Persona[]`, `PersonaSimulation[]`, and `RouteScore[]` only — never raw brief text.
+- This is a structured risk analysis, not market research. It must not claim campaign success probability or present synthetic reactions as validated customer evidence.
+- The prompt explicitly prohibits claiming real-world certainty, inventing market outcomes, or using scores as proof of campaign performance.
+- Synthetic reactions and route scores are treated as planning hypotheses only — supporting evidence, not validation.
+- Output is validated with `premortemReviewOutputSchema` (Zod) before returning. Unvalidated output never reaches callers.
+- Coverage is validated with `validatePremortemCoverage` — every input route must have exactly one `routeRisk` entry. Unknown route IDs and missing or duplicate entries throw `WorkflowValidationError`.
+- `decisionWarnings` must always remind the team that scores are strategic estimates and synthetic reactions are not real research.
+- Retries once on JSON parse, schema validation, or coverage failure.
 
 ## Future LLM integrations
 
