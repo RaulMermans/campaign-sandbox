@@ -22,9 +22,12 @@ These rules apply to all real LLM stages (`normalize_brief`, `extract_strategic_
 
 ## Provider safety
 
-- `OPENAI_API_KEY` is server-side only. It must never be exposed in the browser.
+- `OPENAI_API_KEY` is server-side only. It must never be exposed in the browser. Never set it with `NEXT_PUBLIC_` prefix.
 - The app builds and runs without any API key when provider is `mock`.
 - If provider is `openai` and the key is missing, the API call fails with a typed error — the app does not crash silently.
+- Mock mode is the default and the safe baseline for CI, Vercel public demos, and local development. No real data or secrets are required.
+- Real provider mode is enabled only by explicitly setting `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` plus a valid `OPENAI_API_KEY`. This must not happen automatically.
+- `pnpm test:real-chain` is for local manual verification only. It assumes a running dev server and does not run in CI or `verify:full`.
 
 ## API error sanitization
 

@@ -48,6 +48,38 @@ pnpm lint
 pnpm test
 ```
 
+## Real-provider testing
+
+To test the full seven-stage API chain against a real OpenAI model, use the local test script:
+
+```bash
+# In one terminal:
+CAMPAIGN_SANDBOX_LLM_PROVIDER=openai OPENAI_API_KEY=sk-... pnpm dev
+
+# In another terminal (dev server must be running):
+pnpm test:real-chain
+```
+
+The script calls each stage in sequence, prints compact summaries, and exits non-zero if any stage fails. It reads env vars from the server process — no secrets are committed.
+
+**Mock mode is the default and is always safe for demos, Vercel deployments, and CI.** No API key is required. All seven routes return valid mock data.
+
+**Stages with real LLM support (enabled by `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`):**
+- `normalize_brief` — OpenAI
+- `extract_strategic_tension` — OpenAI
+- `generate_campaign_routes` — OpenAI
+- `build_personas` — OpenAI
+- `simulate_reactions` — OpenAI
+- `premortem_review` — OpenAI
+
+**Always deterministic (no LLM, no env vars needed):**
+- `score_routes`
+
+**Remain mocked in all configurations:**
+- `compare_routes` and all later stages
+
+**Safety reminder:** Synthetic persona reactions, route scores, and pre-mortem outputs are planning hypotheses only. They are not real audience research, market validation, or success predictions.
+
 ## Deploy to Vercel
 
 See [docs/deployment.md](docs/deployment.md) for full instructions.

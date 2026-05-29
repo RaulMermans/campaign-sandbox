@@ -63,3 +63,24 @@ V1 stores trace events in mock run objects only. Later versions should persist t
 The six LLM stages emit `provider`, `model`, `promptVersion`, `inputTokens`, `outputTokens`, and `durationMs` in their trace events.
 
 The `score_routes` stage is deterministic and always emits `provider: "deterministic"` and `model: "score-routes-v1"`. Token fields are not applicable (`inputTokens` and `outputTokens` are omitted). `costUsd` is always 0. `promptVersion` is not applicable. `metadata` includes `scoringMode`, `routeCount`, and `simulationCount`.
+
+## Verifying real-provider trace events
+
+When running `pnpm test:real-chain` against a dev server with `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`, each stage response includes a `traceEvent` with:
+
+- `provider: "openai"` for the six LLM stages
+- `provider: "deterministic"` for `score_routes`
+- `model`: the actual OpenAI model used (e.g. `"gpt-4.1-mini"`)
+- `inputTokens` / `outputTokens`: actual usage from the API response
+- `durationMs`: wall-clock time for the stage including the API call
+
+In mock mode, `provider` is `"mock"`, `costUsd` is `0`, and token fields are `undefined`. Token counts and costs are never fabricated.
+
+## Provider coverage by mode
+
+| Mode | LLM stages | score_routes | Later stages |
+|---|---|---|---|
+| `CAMPAIGN_SANDBOX_LLM_PROVIDER=mock` (default) | Mock trace events | Deterministic | Mock trace events |
+| `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` | Real LLM telemetry | Deterministic | Mock trace events |
+
+The Vercel build phase does not require `OPENAI_API_KEY` — the key is only used at runtime when provider is `openai`.

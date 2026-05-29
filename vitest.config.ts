@@ -8,6 +8,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": rootDir,
+      // Redirect next/server to a lightweight mock so tests don't initialize
+      // the full Next.js runtime (which adds 3+ minutes to the collect phase).
+      "next/server": path.join(rootDir, "tests/__mocks__/next-server.ts"),
     },
   },
   test: {

@@ -112,6 +112,38 @@ curl -X POST http://localhost:3000/api/campaign/premortem \
 
 All seven routes work in mock mode without any environment variables. The scores route works in all modes without any env vars.
 
+### Automated seven-stage local test (optional)
+
+A local test script automates the full chain against a running dev server:
+
+```bash
+# Start the dev server in one terminal:
+pnpm dev
+
+# In another terminal, run the chain:
+pnpm test:real-chain
+```
+
+`test:real-chain` calls each stage in sequence, prints compact summaries, and exits non-zero on any failure. It does not require committing secrets and does not run in CI. By default it targets `http://localhost:3000`; set `TEST_BASE_URL` to override.
+
+### Vercel environment variable recommendations
+
+**Safe public demo (no API key needed):**
+
+```
+CAMPAIGN_SANDBOX_LLM_PROVIDER=mock
+```
+
+**Private real-provider testing:**
+
+```
+CAMPAIGN_SANDBOX_LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+Do not use `NEXT_PUBLIC_` prefix for any of these variables. They are server-side only.
+
 ## Current limitations
 
 - **Only `normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, `simulate_reactions`, and `premortem_review` can use a real LLM provider.** `score_routes` is deterministic. All stages after `premortem_review` (comparison, execution plan) remain mocked.
