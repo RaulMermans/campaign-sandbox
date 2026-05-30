@@ -48,9 +48,24 @@ pnpm lint
 pnpm test
 ```
 
+## How it works
+
+The homepage calls `POST /api/campaign/run` with the user's pasted brief. The server orchestrates all eight implemented stages:
+
+1. `normalize_brief` — LLM (mock or OpenAI)
+2. `extract_strategic_tension` — LLM (mock or OpenAI)
+3. `generate_campaign_routes` — LLM (mock or OpenAI)
+4. `build_personas` — LLM (mock or OpenAI)
+5. `simulate_reactions` — LLM (mock or OpenAI)
+6. `score_routes` — deterministic
+7. `premortem_review` — LLM (mock or OpenAI)
+8. `compare_routes` — deterministic
+
+The response includes all stage outputs and a trace event list. No client-side API keys. No env vars exposed to the browser.
+
 ## Real-provider testing
 
-To test the full seven-stage API chain against a real OpenAI model, use the local test script:
+To test the full eight-stage chain against a real OpenAI model:
 
 ```bash
 # In one terminal:
@@ -60,25 +75,9 @@ CAMPAIGN_SANDBOX_LLM_PROVIDER=openai OPENAI_API_KEY=sk-... pnpm dev
 pnpm test:real-chain
 ```
 
-The script calls each stage in sequence, prints compact summaries, and exits non-zero if any stage fails. It reads env vars from the server process — no secrets are committed.
+**Mock mode is the default and is always safe for demos, Vercel deployments, and CI.** No API key is required.
 
-**Mock mode is the default and is always safe for demos, Vercel deployments, and CI.** No API key is required. All seven routes return valid mock data.
-
-**Stages with real LLM support (enabled by `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`):**
-- `normalize_brief` — OpenAI
-- `extract_strategic_tension` — OpenAI
-- `generate_campaign_routes` — OpenAI
-- `build_personas` — OpenAI
-- `simulate_reactions` — OpenAI
-- `premortem_review` — OpenAI
-
-**Always deterministic (no LLM, no env vars needed):**
-- `score_routes`
-
-**Remain mocked in all configurations:**
-- `compare_routes` and all later stages
-
-**Safety reminder:** Synthetic persona reactions, route scores, and pre-mortem outputs are planning hypotheses only. They are not real audience research, market validation, or success predictions.
+**Safety reminder:** Synthetic persona reactions, route scores, pre-mortem outputs, and comparison matrices are planning hypotheses only. They are not real audience research, market validation, or success predictions. Comparison is decision support — human selection is required before generating an execution plan.
 
 ## Deploy to Vercel
 
@@ -122,15 +121,18 @@ The app builds and runs with no env vars set (defaults to mock mode). See `.env.
 | `simulate_reactions` | **Real (optional)** via server-side env |
 | `score_routes` | **Deterministic** (no LLM, no env vars needed) |
 | `premortem_review` | **Real (optional)** via server-side env |
-| All later stages | Mocked |
+| `compare_routes` | **Deterministic** (no LLM, no env vars needed) |
+| `generate_execution_plan` | Mocked / not implemented |
+| `export_artifact` | Mocked / not implemented |
 
-The six LLM stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. `score_routes` is deterministic and works in all modes without any env vars. The app builds and runs fully without any env vars (mock mode).
+LLM stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. Deterministic stages (`score_routes`, `compare_routes`) work in all modes without any env vars. The app builds and runs fully without any env vars (mock mode).
 
-`score_routes` produces bounded qualitative strategic estimates (1–5) — not probabilities, not predictions. Scores support human route comparison and selection; they do not replace judgment. `premortem_review` produces a structured risk analysis — not market research, not a success prediction. Synthetic reactions and scores used in the pre-mortem are planning hypotheses only. `simulate_reactions` generates synthetic reactions for planning purposes — simulations are not real audience research, do not predict real behavior, and must never be used as market validation. `build_personas` generates synthetic audience hypotheses for planning; personas are not real research and must not be used for discriminatory targeting. `generate_campaign_routes` generates strategic options, not performance predictions.
+All scores and comparison dimensions are bounded qualitative strategic estimates (1–5) — not probabilities, not predictions. Synthetic persona reactions are planning hypotheses only — not real audience research or market validation. Comparison is decision support; human selection is required before generating an execution plan.
 
 ## Project Structure
 
 - `app/` — Next.js routes and API endpoints.
+- `app/api/campaign/run/` — **Full orchestration endpoint** (homepage calls this).
 - `app/api/campaign/normalize/` — Server-side normalization API route.
 - `app/api/campaign/tension/` — Server-side strategic tension API route.
 - `app/api/campaign/routes/` — Server-side campaign route generation API route.
@@ -138,17 +140,16 @@ The six LLM stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_AP
 - `app/api/campaign/simulations/` — Server-side simulation API route.
 - `app/api/campaign/scores/` — Deterministic scoring API route (no LLM).
 - `app/api/campaign/premortem/` — Pre-mortem risk review API route.
+- `app/api/campaign/comparison/` — Deterministic comparison API route (no LLM).
 - `components/` — UI, brief, route, simulation, and trace components.
 - `lib/env.ts` — Server-side environment validation (never import in client components).
 - `lib/llm/` — LLM provider adapter (server-side only).
 - `lib/schemas/` — Zod contracts.
-- `lib/workflow/` — Workflow boundary, mock run, and stage functions.
-- `lib/workflow/stages/` — Bounded LLM stage functions (server-side only).
-- `lib/scoring/` — Route scoring logic.
+- `lib/workflow/` — Workflow boundary, mock run, validators, and stage functions.
+- `lib/workflow/stages/` — Bounded stage functions (server-side only).
+- `lib/scoring/` — Deterministic route scoring and comparison helpers.
 - `lib/traces/` — Trace event factory.
 - `prompts/` — Bounded LLM prompt files.
-- `workflows/` — YAML workflow contract.
-- `evals/` — Cases, rubrics, and fixtures.
 - `docs/` — Architecture, prompts, safety, observability, and deployment docs.
 
 ## Local Troubleshooting
@@ -177,7 +178,7 @@ pnpm dev -- -p 3001
 
 ## Next Build Steps
 
-- `compare_routes` is the next stage — it should be deterministic and use routes, simulations, scores, and premortem output to create the comparison matrix.
+- Add human selection gate and execution plan generation.
 - Add persisted campaign runs.
 - Add exportable artifacts.
 - Add Trigger.dev orchestration when background execution is needed.

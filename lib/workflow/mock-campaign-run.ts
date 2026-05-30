@@ -10,6 +10,7 @@ import type {
 } from "@/lib/schemas/campaign";
 import type { CampaignRun } from "@/lib/schemas/workflow";
 import { scoreRoutes } from "@/lib/scoring/score-routes";
+import { compareRoutes } from "@/lib/scoring/compare-routes";
 import { createTraceEvent } from "@/lib/traces/trace-events";
 
 export const NODO_SAMPLE_BRIEF = `Okay so we need a campaign for the new drop, but it's not really a "drop" because we don't want it to feel like every other streetwear brand screaming LIMITED DROP LIMITED DROP.
@@ -319,32 +320,12 @@ export const premortemReview: PremortemReview = {
 };
 
 function buildComparisonMatrix(scores: ReturnType<typeof scoreRoutes>): RouteComparisonMatrix {
-  return {
-    criteria: ["clarity", "distinctiveness", "feasibility", "conversion potential", "brand fit"],
-    rows: campaignRoutes.map((route) => {
-      const score = scores.find((item) => item.routeId === route.id);
-      return {
-        routeId: route.id,
-        routeName: route.name,
-        strategicRole: route.strategicRole,
-        totalScore: score?.weightedTotal ?? 1,
-        strengths: route.strategicRole === "boldest" ? ["strongest cultural point of view"] : ["clear audience fit"],
-        tradeoffs:
-          route.strategicRole === "conversion"
-            ? ["less ownable as a brand idea"]
-            : ["requires stronger creative execution to convert"],
-        bestFor:
-          route.strategicRole === "safest"
-            ? "Brand-safe launch"
-            : route.strategicRole === "boldest"
-              ? "Cultural relevance"
-              : "Sales and email capture",
-      };
-    }),
-    recommendation:
-      "Use Quiet Itinerary as the base, borrow participation from Between Addresses, and use Uniform for Motion for shoppable launch assets.",
-    caveat: "Recommendation is a decision-support estimate and should be reviewed by the creative lead.",
-  };
+  return compareRoutes({
+    routes: campaignRoutes,
+    simulations: personaSimulations,
+    scores,
+    premortemReview,
+  });
 }
 
 function buildExecutionPlan(selectedRouteId: string): CampaignExecutionPlan {

@@ -15,10 +15,10 @@ Deterministic code owns orchestration, schema validation, scoring weights, trace
 | `simulate_reactions` | **Real (optional)** | `mock` (default) or `openai` |
 | `score_routes` | **Deterministic** | `deterministic` (no LLM) |
 | `premortem_review` | **Real (optional)** | `mock` (default) or `openai` |
-| `compare_routes` | Mocked | — |
+| `compare_routes` | **Deterministic** | `deterministic` (no LLM) |
 | `human_selection` | Human gate | — |
-| `generate_execution_plan` | Mocked | — |
-| `export_artifact` | Placeholder | — |
+| `generate_execution_plan` | Mocked / not implemented | — |
+| `export_artifact` | Mocked / not implemented | — |
 
 ## Server boundary
 
@@ -26,16 +26,18 @@ Real LLM code runs exclusively server-side:
 
 - `lib/env.ts` — reads provider config and API keys. Never imported in client components.
 - `lib/llm/` — provider adapter and `generateJson()` helper. Server-side only.
-- `lib/workflow/stages/` — individual bounded LLM stage functions. Server-side only.
-- `app/api/campaign/normalize/route.ts` — normalization API endpoint.
-- `app/api/campaign/tension/route.ts` — strategic tension API endpoint. Consumes validated normalized briefs only.
-- `app/api/campaign/routes/route.ts` — route generation API endpoint. Consumes validated normalized brief and strategic tension only.
-- `app/api/campaign/personas/route.ts` — persona building API endpoint. Consumes validated normalized brief, strategic tension, and routes only.
-- `app/api/campaign/simulations/route.ts` — simulation API endpoint. Consumes validated normalized brief, strategic tension, routes, and personas only.
-- `app/api/campaign/scores/route.ts` — scoring API endpoint. Deterministic. Consumes validated routes, personas, and simulations. Does not call an LLM. Works without `OPENAI_API_KEY`.
-- `app/api/campaign/premortem/route.ts` — pre-mortem review API endpoint. Consumes validated normalizedBrief, strategicTension, routes, personas, simulations, and scores. Returns structured risk review and trace event.
+- `lib/workflow/stages/` — individual bounded stage functions. Server-side only.
+- `app/api/campaign/run/route.ts` — **full orchestration endpoint**. Accepts a raw brief text, runs all eight implemented stages in sequence, and returns the complete run output. The homepage calls this endpoint.
+- `app/api/campaign/normalize/route.ts` — normalization API endpoint (individual stage).
+- `app/api/campaign/tension/route.ts` — strategic tension API endpoint.
+- `app/api/campaign/routes/route.ts` — route generation API endpoint.
+- `app/api/campaign/personas/route.ts` — persona building API endpoint.
+- `app/api/campaign/simulations/route.ts` — simulation API endpoint.
+- `app/api/campaign/scores/route.ts` — scoring API endpoint. Deterministic. Works without `OPENAI_API_KEY`.
+- `app/api/campaign/premortem/route.ts` — pre-mortem review API endpoint.
+- `app/api/campaign/comparison/route.ts` — comparison API endpoint. Deterministic. Works without `OPENAI_API_KEY`.
 
-Client components call API routes, not stage functions directly. The mock workflow (`lib/workflow/run-campaign-workflow.ts`) remains client-safe and uses no server-only imports.
+Client components call `/api/campaign/run`, not stage functions directly. No API keys or env vars are exposed to the browser.
 
 ## API error safety
 
@@ -142,6 +144,33 @@ Later integrations should follow the same server boundary pattern: new stage fun
 - Prompt version: `premortem_review.v1`.
 - API: `POST /api/campaign/premortem` — accepts bare arrays or wrapper objects for routes/personas/simulations/scores.
 
-## Next stage
+## `compare_routes` stage notes
 
-The next stage to implement is `compare_routes`. It should be deterministic and use routes, simulations, scores, and premortem output to create the comparison matrix. Human selection remains required before final plan generation.
+- Server-side only. Never exposed to the browser.
+- **Deterministic.** Does not call an LLM. Does not read `CAMPAIGN_SANDBOX_LLM_PROVIDER`. Works without `OPENAI_API_KEY`.
+- Consumes validated `CampaignRoute[]`, `Persona[]`, `PersonaSimulation[]`, `RouteScore[]`, and `PremortemReview`.
+- Computes per-route `weightedTotal`, `audienceResonance`, `conversionPotential`, `feasibility`, and `riskLevel` from scoring signals and premortem data.
+- Recommends the route with the highest `weightedTotal`, with a fallback if the top-ranked route has high risk and another is close.
+- Output is a `RouteComparisonMatrix`: `rows` (one per route), `recommendedRouteId`, `summary`, and `decisionNotes`.
+- All numeric dimensions are bounded to [1, 5]. Comparison is decision support, not a prediction.
+- Human selection remains required before final plan generation.
+- Validates simulation, score, and premortem coverage before running.
+- Validates comparison coverage (one row per route, unique IDs, recommendedRouteId references a known route) after running.
+- Coverage failures throw `WorkflowValidationError`.
+- Trace event: `provider: "deterministic"`, `model: "compare-routes-v1"`, `costUsd: 0`.
+- API: `POST /api/campaign/comparison` — accepts bare arrays or wrapper objects for routes/personas/simulations/scores. Accepts `premortemReview` or `review` key.
+
+## `/api/campaign/run` orchestration notes
+
+- Accepts `{ text: string }` (minimum 20 characters).
+- Runs all eight implemented stages in sequence with a shared `runId`.
+- LLM-backed stages (`normalize_brief`, `extract_strategic_tension`, `generate_campaign_routes`, `build_personas`, `simulate_reactions`, `premortem_review`) use the configured provider.
+- Deterministic stages (`score_routes`, `compare_routes`) always run without LLM calls.
+- Returns `CampaignRunOutput`: all stage outputs plus trace events from every stage.
+- Validates final output against `campaignRunOutputSchema` before returning.
+- Never exposes raw OpenAI output, stack traces, or API keys in the response.
+- The homepage calls this endpoint with the user's pasted brief.
+
+## Next steps
+
+Human selection, execution plan generation, and export artifact remain not implemented. These require human gate integration before final plan synthesis.

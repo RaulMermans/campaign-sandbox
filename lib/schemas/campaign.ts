@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { traceEventSchema } from "@/lib/schemas/trace";
 
 const boundedScoreSchema = z.number().min(1).max(5);
 const isoDateTimeSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
@@ -188,28 +189,49 @@ export const premortemReviewOutputSchema = z
 
 export type PremortemReviewOutput = z.infer<typeof premortemReviewOutputSchema>;
 
-export const routeComparisonMatrixSchema = z
+export const routeComparisonRowSchema = z
   .object({
-    criteria: z.array(z.string().min(1)).min(1),
-    rows: z
-      .array(
-        z
-          .object({
-            routeId: z.string().min(1),
-            routeName: z.string().min(1),
-            strategicRole: z.enum(["safest", "boldest", "conversion"]),
-            totalScore: z.number().min(1).max(5),
-            strengths: z.array(z.string().min(1)).min(1),
-            tradeoffs: z.array(z.string().min(1)).min(1),
-            bestFor: z.string().min(1),
-          })
-          .strict(),
-      )
-      .min(1),
+    routeId: z.string().min(1),
+    routeName: z.string().min(1),
+    strategicRole: z.enum(["safest", "boldest", "conversion"]),
+    weightedTotal: z.number().min(1).max(5),
+    audienceResonance: z.number().min(1).max(5),
+    conversionPotential: z.number().min(1).max(5),
+    feasibility: z.number().min(1).max(5),
+    riskLevel: z.enum(["low", "medium", "high"]),
+    keyStrengths: z.array(z.string().min(1)).min(1),
+    keyRisks: z.array(z.string().min(1)).min(1),
     recommendation: z.string().min(1),
-    caveat: z.string().min(1),
   })
   .strict();
+
+export const routeComparisonMatrixSchema = z
+  .object({
+    rows: z.array(routeComparisonRowSchema).min(1),
+    recommendedRouteId: z.string().min(1),
+    summary: z.string().min(1),
+    decisionNotes: z.array(z.string().min(1)).min(1),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    const rowIds = new Set(value.rows.map((row) => row.routeId));
+
+    if (rowIds.size !== value.rows.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["rows"],
+        message: "Comparison rows must include unique route IDs.",
+      });
+    }
+
+    if (!rowIds.has(value.recommendedRouteId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["recommendedRouteId"],
+        message: "Recommended route must reference an existing comparison row.",
+      });
+    }
+  });
 
 export const campaignExecutionPlanSchema = z
   .object({
@@ -349,5 +371,24 @@ export type Persona = z.infer<typeof personaSchema>;
 export type PersonaSimulation = z.infer<typeof personaSimulationSchema>;
 export type RouteScore = z.infer<typeof routeScoreSchema>;
 export type PremortemReview = z.infer<typeof premortemReviewSchema>;
+export type RouteComparisonRow = z.infer<typeof routeComparisonRowSchema>;
 export type RouteComparisonMatrix = z.infer<typeof routeComparisonMatrixSchema>;
 export type CampaignExecutionPlan = z.infer<typeof campaignExecutionPlanSchema>;
+
+export const campaignRunOutputSchema = z
+  .object({
+    runId: z.string().min(1),
+    status: z.literal("completed"),
+    normalizedBrief: normalizedCampaignBriefSchema,
+    strategicTension: strategicTensionSchema,
+    routes: z.array(campaignRouteSchema).min(3).max(5),
+    personas: z.array(personaSchema).min(3).max(6),
+    simulations: z.array(personaSimulationSchema).min(1),
+    scores: z.array(routeScoreSchema).min(1),
+    premortemReview: premortemReviewSchema,
+    comparison: routeComparisonMatrixSchema,
+    traceEvents: z.array(traceEventSchema).min(1),
+  })
+  .strict();
+
+export type CampaignRunOutput = z.infer<typeof campaignRunOutputSchema>;

@@ -41,15 +41,16 @@ Validation errors include path and message for developer use but contain no raw 
 
 ## What remains synthetic
 
-Even when all seven real stages use a real provider (or deterministic engine):
+Even when all eight implemented stages run (six with a real LLM provider, two deterministic):
 
-- All stages after `premortem_review` remain mocked.
 - `generate_campaign_routes` generates strategic options, not market predictions. It does not use real market data.
 - Routes are decision-support material, not campaign performance forecasts.
 - Persona reactions are synthetic, not real audience research.
 - Route scores are bounded strategic estimates from deterministic scoring logic. They are not predictions, probabilities, or market research.
 - The pre-mortem review is a structured risk analysis — not market research, not a success prediction.
-- The comparison matrix and execution plan are built from mock data.
+- The comparison matrix is a decision-support tool built from deterministic scoring signals. It is not a prediction or market validation.
+- Human selection and execution plan generation are not implemented.
+- Export artifact is not implemented.
 
 ## `extract_strategic_tension` safety rules
 
@@ -116,6 +117,26 @@ Even when all seven real stages use a real provider (or deterministic engine):
 - Coverage is validated with `validatePremortemCoverage` — every input route must have exactly one `routeRisk` entry. Unknown route IDs and missing or duplicate entries throw `WorkflowValidationError`.
 - `decisionWarnings` must always remind the team that scores are strategic estimates and synthetic reactions are not real research.
 - Retries once on JSON parse, schema validation, or coverage failure.
+
+## `compare_routes` safety rules
+
+- Deterministic. Does not call an LLM. Does not use `OPENAI_API_KEY`. Works in all provider modes.
+- Comparison dimensions (weighted total, audience resonance, conversion potential, feasibility) are bounded to [1, 5]. They are not probabilities, success predictions, or market research.
+- The comparison matrix is decision support — it does not replace human judgment. Human selection is required before generating an execution plan.
+- Risk levels (`low`, `medium`, `high`) are derived from the premortem risk count. They are heuristic indicators, not risk assessments.
+- `recommendedRouteId` is a scoring-based suggestion, not a prediction of campaign success.
+- `decisionNotes` always remind the team that scores are strategic estimates and synthetic reactions are not real research.
+- Comparison output must never be presented as market validation, A/B test results, or conversion evidence.
+- Full simulation, score, and premortem coverage is required before comparing. Missing coverage throws `WorkflowValidationError`.
+
+## `POST /api/campaign/run` safety rules
+
+- Accepts raw brief text. Validates minimum length (20 characters). Rejects non-JSON bodies.
+- Orchestrates eight stages server-side. No client-side LLM calls. No API keys exposed to the browser.
+- All stage outputs are validated with Zod before the next stage receives them.
+- Final output is validated with `campaignRunOutputSchema` before returning.
+- Provider errors, LLM JSON parse failures, schema validation failures, and workflow coverage failures are all caught and sanitized. Raw model output, stack traces, and API keys are never returned.
+- The response is labeled `status: "completed"` only after all eight stages succeed.
 
 ## Future LLM integrations
 

@@ -8,20 +8,39 @@ import { RouteComparisonTable } from "@/components/routes/route-comparison-table
 import { PersonaSimulationPanel } from "@/components/simulation/persona-simulation-panel";
 import { TraceTimeline } from "@/components/trace/trace-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { CampaignRun } from "@/lib/schemas/workflow";
-import { buildMockCompletedCampaignRun, NODO_SAMPLE_BRIEF } from "@/lib/workflow/mock-campaign-run";
-import { runCampaignWorkflow } from "@/lib/workflow/run-campaign-workflow";
+import type { CampaignRunOutput } from "@/lib/schemas/campaign";
+import { NODO_SAMPLE_BRIEF } from "@/lib/workflow/mock-campaign-run";
 
 export default function Home() {
   const [brief, setBrief] = useState("");
-  const [run, setRun] = useState<CampaignRun | null>(null);
+  const [run, setRun] = useState<CampaignRunOutput | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleRun() {
     setIsRunning(true);
-    const result = await runCampaignWorkflow(brief);
-    setRun(result);
-    setIsRunning(false);
+    setError(null);
+    try {
+      const response = await fetch("/api/campaign/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: brief }),
+      });
+      const data: unknown = await response.json();
+      if (!response.ok) {
+        const msg =
+          typeof data === "object" && data !== null && "error" in data
+            ? String((data as Record<string, unknown>).error)
+            : "Campaign run failed.";
+        setError(msg);
+        return;
+      }
+      setRun(data as CampaignRunOutput);
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsRunning(false);
+    }
   }
 
   return (
@@ -39,11 +58,9 @@ export default function Home() {
             tradeoffs before committing to a plan.
           </p>
           <p className="mt-5 max-w-xl text-sm leading-6 text-stone-600">
-            Demo mode uses mocked strategy outputs. Real brief normalization can be enabled server-side via{" "}
-            <code className="rounded bg-stone-200 px-1 py-0.5 font-mono text-xs">
-              CAMPAIGN_SANDBOX_LLM_PROVIDER=openai
-            </code>
-            . Later workflow stages remain mocked.
+            Runs execute server-side through the campaign workflow. LLM-backed stages use the configured provider;
+            scoring and comparison are deterministic. Synthetic persona reactions are planning hypotheses, not market
+            research or success predictions.
           </p>
         </div>
 
@@ -63,23 +80,23 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          {run ? (
-            <CampaignRunResult
-              run={run}
-              onSelectRoute={(routeId) => setRun(buildMockCompletedCampaignRun(routeId, run.rawBrief.text))}
-            />
+          {error ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>
           ) : null}
+
+          {run ? <CampaignRunResult run={run} /> : null}
         </div>
       </section>
     </main>
   );
 }
 
-function CampaignRunResult({ run, onSelectRoute }: { run: CampaignRun; onSelectRoute: (routeId: string) => void }) {
+function CampaignRunResult({ run }: { run: CampaignRunOutput }) {
   return (
     <section className="grid gap-6">
       <p className="rounded-lg border border-stone-300 bg-white p-4 text-sm leading-6 text-stone-700">
-        {run.disclaimer}
+        Synthetic persona reactions and route scores are strategic estimates for decision support only. They are not
+        real market research or success predictions.
       </p>
       <NormalizedBriefPanel brief={run.normalizedBrief} tension={run.strategicTension} />
       <div className="grid gap-4 lg:grid-cols-3">
@@ -92,51 +109,14 @@ function CampaignRunResult({ run, onSelectRoute }: { run: CampaignRun; onSelectR
         ))}
       </div>
       <PersonaSimulationPanel personas={run.personas} simulations={run.simulations} routes={run.routes} />
-      <RouteComparisonTable matrix={run.comparisonMatrix} />
-      <Card>
-        <CardHeader>
-          <CardTitle>Human Route Selection</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 text-sm leading-6 text-stone-700">
-          {run.humanSelection ? (
-            <>
-              <p>
-                Mock creative lead selected{" "}
-                <span className="font-medium text-stone-950">{run.executionPlan?.selectedRouteName}</span> before
-                generating the execution plan.
-              </p>
-              <p className="text-stone-500">{run.humanSelection.rationale}</p>
-            </>
-          ) : (
-            <>
-              <p>
-                This run is awaiting explicit human selection. The execution plan is intentionally blocked until a
-                route is selected.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {run.routes.map((route) => (
-                  <button
-                    key={route.id}
-                    type="button"
-                    onClick={() => onSelectRoute(route.id)}
-                    className="rounded-md border border-stone-300 bg-white px-3 py-2 font-medium text-stone-950 hover:bg-stone-100"
-                  >
-                    Select {route.name}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Pre-mortem Risk Review</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 text-sm leading-6 text-stone-700">
-          <p className="font-medium text-stone-950">{run.premortem.summary}</p>
+          <p className="font-medium text-stone-950">{run.premortemReview.summary}</p>
           <div className="grid gap-3 md:grid-cols-3">
-            {run.premortem.routeRisks.map((routeRisk) => (
+            {run.premortemReview.routeRisks.map((routeRisk) => (
               <div key={routeRisk.routeId} className="rounded-md border border-stone-200 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
                   {routeRisk.routeId}
@@ -148,53 +128,32 @@ function CampaignRunResult({ run, onSelectRoute }: { run: CampaignRun; onSelectR
           </div>
         </CardContent>
       </Card>
-      {run.executionPlan ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Execution Plan Preview</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 text-sm leading-6 text-stone-700">
-            <p className="text-base font-medium text-stone-950">{run.executionPlan.selectedRouteName}</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <PlanList title="Assets" items={run.executionPlan.assetList} />
-              <PlanList title="Metrics" items={run.executionPlan.metrics} />
-            </div>
-            <div className="grid gap-3">
-              {run.executionPlan.timeline.map((phase) => (
-                <div key={phase.phase} className="rounded-md bg-stone-100 p-4">
-                  <p className="font-medium text-stone-950">
-                    {phase.phase}: {phase.timing}
-                  </p>
-                  <p>{phase.actions.join(", ")}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Execution Plan</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm leading-6 text-stone-700">
-            No execution plan yet. Human route selection is required before final plan generation.
-          </CardContent>
-        </Card>
-      )}
+      <RouteComparisonTable matrix={run.comparison} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Human Route Selection</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm leading-6 text-stone-700">
+          <p>
+            Human selection and execution plan generation are not yet implemented in this sprint. Select a route and
+            generate a plan in a future release.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {run.routes.map((route) => (
+              <button
+                key={route.id}
+                type="button"
+                disabled
+                className="rounded-md border border-stone-300 bg-white px-3 py-2 font-medium text-stone-400 cursor-not-allowed"
+              >
+                Select {route.name}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
       <TraceTimeline events={run.traceEvents} />
     </section>
   );
 }
 
-function PlanList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{title}</p>
-      <ul className="mt-2 list-inside list-disc">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
