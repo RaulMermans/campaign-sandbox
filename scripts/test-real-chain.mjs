@@ -96,7 +96,7 @@ let routes;
     const provider = body.traceEvent?.provider ?? "unknown";
     log("routes ✓", `count=${routes.length}, provider=${provider}`);
     for (const r of routes) {
-      console.log(`  [${r.id}] ${r.name} (${r.posture})`);
+      console.log(`  [${r.id}] ${r.name} (${r.strategicRole})`);
     }
     if (routes.length < 3) fail("routes", `Expected 3+ routes, got ${routes.length}`);
   }
@@ -185,7 +185,7 @@ let scores;
     const provider = body.traceEvent?.provider ?? "unknown";
     log("scores ✓", `count=${scores.length}, provider=${provider}`);
     for (const s of scores) {
-      console.log(`  [${s.routeId}] score=${s.overallScore}`);
+      console.log(`  [${s.routeId}] score=${s.weightedTotal}`);
     }
     if (scores.length !== routes.length) {
       fail("scores", `Expected ${routes.length} scores, got ${scores.length}`);
@@ -212,7 +212,7 @@ if (!scores?.length) {
   if (status !== 200) {
     fail("premortem", `HTTP ${status}: ${JSON.stringify(body).slice(0, 200)}`);
   } else {
-    const routeRisks = body.routeRisks ?? [];
+    const routeRisks = body.review?.routeRisks ?? [];
     const provider = body.traceEvent?.provider ?? "unknown";
     log("premortem ✓", `routeRisks=${routeRisks.length}, provider=${provider}`);
     for (const r of routeRisks) {
