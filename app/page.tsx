@@ -9,7 +9,7 @@ import { PersonaSimulationPanel } from "@/components/simulation/persona-simulati
 import { TraceTimeline } from "@/components/trace/trace-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CampaignRunOutput } from "@/lib/schemas/campaign";
-import { NODO_SAMPLE_BRIEF } from "@/lib/workflow/mock-campaign-run";
+import { NODO_SAMPLE_BRIEF } from "@/lib/sample-briefs";
 
 export default function Home() {
   const [brief, setBrief] = useState("");
