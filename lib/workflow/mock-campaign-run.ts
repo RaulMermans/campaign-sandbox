@@ -13,7 +13,8 @@ import { scoreRoutes } from "@/lib/scoring/score-routes";
 import { compareRoutes } from "@/lib/scoring/compare-routes";
 import { createTraceEvent } from "@/lib/traces/trace-events";
 
-export { NODO_SAMPLE_BRIEF } from "@/lib/sample-briefs";
+import { NODO_SAMPLE_BRIEF } from "@/lib/sample-briefs";
+export { NODO_SAMPLE_BRIEF };
 
 export const normalizedBrief: NormalizedCampaignBrief = {
   brandName: "NODO",
