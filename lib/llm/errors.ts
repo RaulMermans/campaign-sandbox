@@ -8,6 +8,13 @@ export class LlmProviderError extends Error {
   }
 }
 
+export class LlmTimeoutError extends LlmProviderError {
+  constructor(message: string) {
+    super(message);
+    this.name = "LlmTimeoutError";
+  }
+}
+
 export class LlmJsonParseError extends Error {
   readonly raw: string;
   constructor(message: string, raw: string) {

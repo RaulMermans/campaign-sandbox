@@ -26,6 +26,7 @@ import { personaSimulations as MOCK_SIMULATIONS } from "@/lib/workflow/mock-camp
 const PROMPT_FILE = "simulate_audience_reactions.md";
 const PROMPT_VERSION = "simulate_reactions.v1";
 const DEFAULT_RUN_ID = "stage-only";
+const OPENAI_TIMEOUT_MS = 90_000;
 
 export interface SimulateReactionsResult {
   simulations: PersonaSimulation[];
@@ -138,6 +139,7 @@ async function simulateReactionsWithOpenAI(
         prompt,
         schema: personaSimulationsOutputSchema,
         model: env.openaiModel,
+        timeoutMs: OPENAI_TIMEOUT_MS,
       });
 
       // Cross-reference validation: ensure every route/persona pair is covered.

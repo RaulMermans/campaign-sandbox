@@ -4,7 +4,12 @@
 
 import type { ZodTypeAny, infer as ZodInfer } from "zod";
 import { env } from "@/lib/env";
-import { LlmJsonParseError, LlmProviderError, LlmSchemaValidationError } from "@/lib/llm/errors";
+import {
+  LlmJsonParseError,
+  LlmProviderError,
+  LlmSchemaValidationError,
+  LlmTimeoutError,
+} from "@/lib/llm/errors";
 
 export interface GenerateJsonOptions<T extends ZodTypeAny> {
   /** Full prompt text to send to the model. Must instruct the model to return JSON only. */
@@ -75,7 +80,7 @@ export async function generateJson<T extends ZodTypeAny>(
   } catch (err) {
     clearTimeout(timer);
     if (err instanceof Error && err.name === "AbortError") {
-      throw new LlmProviderError(`Request timed out after ${timeoutMs}ms.`);
+      throw new LlmTimeoutError(`Request timed out after ${timeoutMs}ms.`);
     }
     throw new LlmProviderError(`Network error calling OpenAI: ${String(err)}`);
   }

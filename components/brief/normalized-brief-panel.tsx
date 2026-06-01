@@ -1,8 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { NormalizedCampaignBrief, StrategicTension } from "@/lib/schemas/campaign";
 
-function formatBudget(budget: NormalizedCampaignBrief["budget"]): string {
+export function formatBudget(budget: NormalizedCampaignBrief["budget"]): string {
   if (!budget) return "Not specified";
+  if (budget.label && /^([A-Z]{3}\s*)?0\s*[-–]\s*0$/i.test(budget.label.trim())) {
+    return "Not specified";
+  }
   if (budget.label) return budget.label;
   const { min, max, currency } = budget;
   if ((min == null || min === 0) && (max == null || max === 0)) return "Not specified";

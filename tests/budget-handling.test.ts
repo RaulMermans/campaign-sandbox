@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { normalizedCampaignBriefSchema } from "@/lib/schemas/campaign";
+import { formatBudget } from "@/components/brief/normalized-brief-panel";
 
 // The minimal valid normalized brief (without budget) for testing
 function makeMinimalBrief(overrides: Record<string, unknown> = {}) {
@@ -86,29 +87,34 @@ describe("NormalizedCampaignBrief budget schema", () => {
 });
 
 describe("Budget display logic", () => {
-  it("undefined budget should display as 'Not specified' (display contract)", () => {
-    // This documents the expected behavior for the UI formatBudget helper.
-    // The actual function lives in components/brief/normalized-brief-panel.tsx.
-    // We verify the schema allows undefined to flow through.
+  it("undefined budget displays as 'Not specified'", () => {
     const result = normalizedCampaignBriefSchema.safeParse(makeMinimalBrief());
     expect(result.success).toBe(true);
     if (result.success) {
-      const b = result.data.budget;
-      // If undefined: should display "Not specified"
-      expect(b).toBeUndefined();
+      expect(formatBudget(result.data.budget)).toBe("Not specified");
     }
   });
 
-  it("budget with only label 'Not specified' should not produce 'USD 0-0'", () => {
+  it("budget with only label 'Not specified' does not produce 'USD 0-0'", () => {
     const result = normalizedCampaignBriefSchema.safeParse(
       makeMinimalBrief({ budget: { label: "Not specified" } }),
     );
     expect(result.success).toBe(true);
     if (result.success) {
-      const b = result.data.budget;
-      // min and max should be absent (not 0)
-      expect(b?.min).toBeUndefined();
-      expect(b?.max).toBeUndefined();
+      expect(formatBudget(result.data.budget)).toBe("Not specified");
+      expect(formatBudget(result.data.budget)).not.toBe("USD 0-0");
     }
+  });
+
+  it("known budget range renders correctly", () => {
+    expect(formatBudget({ min: 3000, max: 7000, currency: "EUR" })).toBe("EUR 3,000–7,000");
+  });
+
+  it("vague budget label is preserved", () => {
+    expect(formatBudget({ label: "Lean test budget" })).toBe("Lean test budget");
+  });
+
+  it("bad zero range label is treated as unknown", () => {
+    expect(formatBudget({ label: "USD 0-0" })).toBe("Not specified");
   });
 });

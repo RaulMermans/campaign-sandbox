@@ -29,6 +29,7 @@ import { premortemReview as MOCK_PREMORTEM } from "@/lib/workflow/mock-campaign-
 const PROMPT_FILE = "premortem_review.md";
 const PROMPT_VERSION = "premortem_review.v1";
 const DEFAULT_RUN_ID = "stage-only";
+const OPENAI_TIMEOUT_MS = 120_000;
 
 export interface PremortemReviewResult {
   review: PremortemReview;
@@ -142,6 +143,7 @@ async function premortemReviewWithOpenAI(
         prompt,
         schema: premortemReviewOutputSchema,
         model: env.openaiModel,
+        timeoutMs: OPENAI_TIMEOUT_MS,
       });
 
       // Cross-reference: every route must have exactly one risk review entry.

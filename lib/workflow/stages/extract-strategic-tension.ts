@@ -17,6 +17,7 @@ import { strategicTension as MOCK_STRATEGIC_TENSION } from "@/lib/workflow/mock-
 const PROMPT_FILE = "extract_strategic_tension.md";
 const PROMPT_VERSION = "extract_strategic_tension.v1";
 const DEFAULT_RUN_ID = "stage-only";
+const OPENAI_TIMEOUT_MS = 45_000;
 
 export interface ExtractStrategicTensionResult {
   strategicTension: StrategicTension;
@@ -64,6 +65,7 @@ async function extractTensionWithOpenAI(
         prompt,
         schema: strategicTensionSchema,
         model: env.openaiModel,
+        timeoutMs: OPENAI_TIMEOUT_MS,
       });
 
       const durationMs = Date.now() - startMs;

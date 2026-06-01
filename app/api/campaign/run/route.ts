@@ -17,7 +17,7 @@ import { scoreRoutesStage } from "@/lib/workflow/stages/score-routes-stage";
 import { premortemReviewStage } from "@/lib/workflow/stages/premortem-review";
 import { compareRoutesStage } from "@/lib/workflow/stages/compare-routes-stage";
 import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
-import { LlmProviderError, LlmJsonParseError, LlmSchemaValidationError } from "@/lib/llm/errors";
+import { LlmProviderError, LlmJsonParseError, LlmSchemaValidationError, LlmTimeoutError } from "@/lib/llm/errors";
 import { compactSimulations } from "@/lib/workflow/compact-run-context";
 import type { TraceEvent } from "@/lib/schemas/trace";
 import type { CampaignRoute, Persona } from "@/lib/schemas/campaign";
@@ -202,6 +202,12 @@ export async function POST(request: Request): Promise<Response> {
         { status: 422 },
       );
     }
+    if (err instanceof LlmTimeoutError) {
+      return NextResponse.json(
+        { error: "LLM request timed out.", code: "LLM_TIMEOUT" },
+        { status: 504 },
+      );
+    }
     if (err instanceof LlmProviderError) {
       return NextResponse.json(
         { error: "LLM provider error. Check provider configuration.", code: "LLM_PROVIDER_ERROR" },
@@ -226,4 +232,3 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 }
-

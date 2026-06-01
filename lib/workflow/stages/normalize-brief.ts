@@ -17,6 +17,7 @@ import { normalizedBrief as MOCK_NORMALIZED_BRIEF } from "@/lib/workflow/mock-ca
 const PROMPT_FILE = "normalize_brief.md";
 const PROMPT_VERSION = "normalize_brief.v1";
 const DEFAULT_RUN_ID = "stage-only";
+const OPENAI_TIMEOUT_MS = 45_000;
 
 export interface NormalizeBriefResult {
   normalizedBrief: NormalizedCampaignBrief;
@@ -65,6 +66,7 @@ async function normalizeWithOpenAI(
         prompt,
         schema: normalizedCampaignBriefSchema,
         model: env.openaiModel,
+        timeoutMs: OPENAI_TIMEOUT_MS,
       });
 
       const durationMs = Date.now() - startMs;

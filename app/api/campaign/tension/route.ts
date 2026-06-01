@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 import { normalizedCampaignBriefSchema } from "@/lib/schemas/campaign";
 import { extractStrategicTensionStage } from "@/lib/workflow/stages/extract-strategic-tension";
-import { LlmJsonParseError, LlmProviderError, LlmSchemaValidationError } from "@/lib/llm/errors";
+import { LlmJsonParseError, LlmProviderError, LlmSchemaValidationError, LlmTimeoutError } from "@/lib/llm/errors";
 
 // Force Node.js runtime so we can safely use fs, env, and provider SDKs.
 export const runtime = "nodejs";
@@ -62,6 +62,9 @@ export async function POST(request: Request): Promise<Response> {
       traceEvent: result.traceEvent,
     });
   } catch (err) {
+    if (err instanceof LlmTimeoutError) {
+      return NextResponse.json({ error: "LLM request timed out.", code: "LLM_TIMEOUT" }, { status: 504 });
+    }
     if (err instanceof LlmJsonParseError) {
       return NextResponse.json({ error: "LLM stage failed.", code: "LLM_JSON_PARSE_ERROR" }, { status: 500 });
     }

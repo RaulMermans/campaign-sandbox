@@ -19,6 +19,7 @@ import { campaignRoutes as MOCK_CAMPAIGN_ROUTES } from "@/lib/workflow/mock-camp
 const PROMPT_FILE = "generate_campaign_routes.md";
 const PROMPT_VERSION = "generate_campaign_routes.v1";
 const DEFAULT_RUN_ID = "stage-only";
+const OPENAI_TIMEOUT_MS = 75_000;
 
 export interface GenerateCampaignRoutesResult {
   routes: CampaignRoute[];
@@ -77,6 +78,7 @@ async function generateRoutesWithOpenAI(
         prompt,
         schema: campaignRoutesOutputSchema,
         model: env.openaiModel,
+        timeoutMs: OPENAI_TIMEOUT_MS,
       });
 
       const durationMs = Date.now() - startMs;

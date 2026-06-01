@@ -16,7 +16,7 @@ import {
 } from "@/lib/schemas/campaign";
 import { premortemReviewStage } from "@/lib/workflow/stages/premortem-review";
 import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
-import { LlmProviderError, LlmJsonParseError, LlmSchemaValidationError } from "@/lib/llm/errors";
+import { LlmProviderError, LlmJsonParseError, LlmSchemaValidationError, LlmTimeoutError } from "@/lib/llm/errors";
 
 // Force Node.js runtime so we can safely use fs, env, and provider SDKs.
 export const runtime = "nodejs";
@@ -189,6 +189,12 @@ export async function POST(request: Request): Promise<Response> {
           issues: err.issues,
         },
         { status: 422 },
+      );
+    }
+    if (err instanceof LlmTimeoutError) {
+      return NextResponse.json(
+        { error: "LLM request timed out.", code: "LLM_TIMEOUT" },
+        { status: 504 },
       );
     }
     if (err instanceof LlmProviderError) {

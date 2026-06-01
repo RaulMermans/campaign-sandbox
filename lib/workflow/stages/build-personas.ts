@@ -24,6 +24,7 @@ import { campaignPersonas as MOCK_PERSONAS } from "@/lib/workflow/mock-campaign-
 const PROMPT_FILE = "build_personas.md";
 const PROMPT_VERSION = "build_personas.v1";
 const DEFAULT_RUN_ID = "stage-only";
+const OPENAI_TIMEOUT_MS = 60_000;
 
 export interface BuildPersonasResult {
   personas: Persona[];
@@ -87,6 +88,7 @@ async function buildPersonasWithOpenAI(
         prompt,
         schema: personasOutputSchema,
         model: env.openaiModel,
+        timeoutMs: OPENAI_TIMEOUT_MS,
       });
 
       const durationMs = Date.now() - startMs;

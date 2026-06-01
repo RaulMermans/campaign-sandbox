@@ -78,7 +78,7 @@ export default function Home() {
       const response = await fetch("/api/campaign/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: brief }),
+        body: JSON.stringify({ text: brief, mode: "fast" }),
       });
       const data: unknown = await response.json();
       if (!response.ok) {
