@@ -13,6 +13,8 @@ export interface GenerateJsonOptions<T extends ZodTypeAny> {
   schema: T;
   /** Model ID override. Defaults to env.openaiModel. */
   model?: string;
+  /** Request timeout in milliseconds. Defaults to 120_000ms. */
+  timeoutMs?: number;
 }
 
 export interface GenerateJsonResult<T> {
@@ -50,19 +52,34 @@ export async function generateJson<T extends ZodTypeAny>(
   }
 
   const model = options.model ?? env.openaiModel;
+  const timeoutMs = options.timeoutMs ?? 120_000;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "user", content: options.prompt }],
-      response_format: { type: "json_object" },
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response: globalThis.Response;
+  try {
+    response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: options.prompt }],
+        response_format: { type: "json_object" },
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new LlmProviderError(`Request timed out after ${timeoutMs}ms.`);
+    }
+    throw new LlmProviderError(`Network error calling OpenAI: ${String(err)}`);
+  }
+  clearTimeout(timer);
 
   if (!response.ok) {
     const text = await response.text();

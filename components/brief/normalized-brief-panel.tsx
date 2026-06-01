@@ -1,6 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { NormalizedCampaignBrief, StrategicTension } from "@/lib/schemas/campaign";
 
+function formatBudget(budget: NormalizedCampaignBrief["budget"]): string {
+  if (!budget) return "Not specified";
+  if (budget.label) return budget.label;
+  const { min, max, currency } = budget;
+  if ((min == null || min === 0) && (max == null || max === 0)) return "Not specified";
+  if (min != null && max != null && currency) {
+    return `${currency} ${min.toLocaleString()}–${max.toLocaleString()}`;
+  }
+  return "Not specified";
+}
+
 export function NormalizedBriefPanel({
   brief,
   tension,
@@ -19,7 +30,7 @@ export function NormalizedBriefPanel({
           <div className="grid gap-3 sm:grid-cols-2">
             <Detail label="Audience" value={`${brief.audience.ageRange}: ${brief.audience.segments.join(", ")}`} />
             <Detail label="Markets" value={brief.audience.geographies.join(", ")} />
-            <Detail label="Budget" value={`${brief.budget.currency} ${brief.budget.min.toLocaleString()}-${brief.budget.max.toLocaleString()}`} />
+            <Detail label="Budget" value={formatBudget(brief.budget)} />
             <Detail label="Launch" value={brief.timeline.launchWindow} />
           </div>
           <Detail label="Constraints" value={brief.constraints.join("; ")} />

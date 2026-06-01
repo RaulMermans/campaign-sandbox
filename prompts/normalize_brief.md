@@ -10,7 +10,8 @@ Convert a messy campaign brief into a structured JSON object.
 - Do not invent market research, audience predictions, or probability claims.
 - Do not add information not present or clearly implied in the brief.
 - Separate confirmed facts from inferred assumptions.
-- If a numeric value is not stated, use 0, not an estimated figure.
+- If a numeric value is not stated, do not infer or estimate it. Use null for min/max.
+- If budget is not provided, set label to "Not specified" and do not output min/max (or set them to null). Never output 0 as a placeholder for unknown budget.
 
 ## Safety rules
 
@@ -44,9 +45,10 @@ Return an object with exactly these fields. All arrays must have at least one it
     "sensitivities": ["thing the audience dislikes 1", "thing the audience dislikes 2"]
   },
   "budget": {
-    "min": 0,
-    "max": 0,
-    "currency": "ISO currency code",
+    "min": null,
+    "max": null,
+    "currency": "ISO currency code, or omit if unknown",
+    "label": "Human-readable summary, e.g. 'EUR 3,000–7,000' or 'Not specified'",
     "notes": "Any stated caveats, exclusions, or conditions about the budget"
   },
   "timeline": {

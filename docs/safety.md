@@ -132,11 +132,19 @@ Even when all eight implemented stages run (six with a real LLM provider, two de
 ## `POST /api/campaign/run` safety rules
 
 - Accepts raw brief text. Validates minimum length (20 characters). Rejects non-JSON bodies.
+- Accepts optional `mode: "fast" | "deep"`. Rejects any other value. Defaults to `"fast"`.
 - Orchestrates eight stages server-side. No client-side LLM calls. No API keys exposed to the browser.
 - All stage outputs are validated with Zod before the next stage receives them.
 - Final output is validated with `campaignRunOutputSchema` before returning.
 - Provider errors, LLM JSON parse failures, schema validation failures, and workflow coverage failures are all caught and sanitized. Raw model output, stack traces, and API keys are never returned.
 - The response is labeled `status: "completed"` only after all eight stages succeed.
+
+## Budget handling safety
+
+- If a brief does not specify a budget, the output must not set `budget.min` or `budget.max` to `0` as a placeholder.
+- `budget.label` should be `"Not specified"` when the brief contains no budget information.
+- The UI must never display `"USD 0-0"` or equivalent for unknown budget.
+- The `budget` field in `normalizedCampaignBriefSchema` is optional — it may be absent.
 
 ## Future LLM integrations
 

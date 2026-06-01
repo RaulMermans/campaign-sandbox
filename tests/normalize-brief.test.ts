@@ -7,7 +7,7 @@ import {
   LlmProviderError,
   LlmSchemaValidationError,
 } from "@/lib/llm/errors";
-import { NODO_SAMPLE_BRIEF } from "@/lib/workflow/mock-campaign-run";
+import { NODO_SAMPLE_BRIEF } from "@/lib/sample-briefs";
 
 // Runs without any env vars set — CAMPAIGN_SANDBOX_LLM_PROVIDER defaults to "mock".
 

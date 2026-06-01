@@ -38,7 +38,7 @@ export const normalizedBrief: NormalizedCampaignBrief = {
     geographies: ["Spain", "Portugal", "France", "Italy"],
     sensitivities: ["obvious ads", "forced scarcity language", "fake-deep copy", "cringe TikTok tropes"],
   },
-  budget: { min: 3000, max: 7000, currency: "EUR", notes: "Low to medium production budget excluding product." },
+  budget: { min: 3000, max: 7000, currency: "EUR", label: "EUR 3,000–7,000", notes: "Low to medium production budget excluding product." },
   timeline: {
     launchWindow: "Late September",
     teaserWindow: "Two weeks before launch",

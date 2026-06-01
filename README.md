@@ -63,6 +63,8 @@ The homepage calls `POST /api/campaign/run` with the user's pasted brief. The se
 
 The response includes all stage outputs and a trace event list. No client-side API keys. No env vars exposed to the browser.
 
+The run endpoint accepts an optional `mode` parameter: `"fast"` (default) or `"deep"`. Fast mode limits to 3 routes and 3 personas (max 9 simulations) for lower latency. Deep mode preserves all generated routes and personas. All stages run in both modes.
+
 ## Real-provider testing
 
 To test the full eight-stage chain against a real OpenAI model:

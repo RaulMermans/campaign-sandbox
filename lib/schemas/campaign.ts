@@ -40,12 +40,13 @@ export const normalizedCampaignBriefSchema = z
       .strict(),
     budget: z
       .object({
-        min: z.number().nonnegative(),
-        max: z.number().nonnegative(),
-        currency: z.string().min(1),
-        notes: z.string(),
+        min: z.number().nonnegative().nullable().optional(),
+        max: z.number().nonnegative().nullable().optional(),
+        currency: z.string().optional(),
+        label: z.string().optional(),
+        notes: z.string().optional(),
       })
-      .strict(),
+      .optional(),
     timeline: z
       .object({
         launchWindow: z.string().min(1),

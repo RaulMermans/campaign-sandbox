@@ -18,9 +18,32 @@ import { premortemReviewStage } from "@/lib/workflow/stages/premortem-review";
 import { compareRoutesStage } from "@/lib/workflow/stages/compare-routes-stage";
 import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
 import { LlmProviderError, LlmJsonParseError, LlmSchemaValidationError } from "@/lib/llm/errors";
+import { compactSimulations } from "@/lib/workflow/compact-run-context";
 import type { TraceEvent } from "@/lib/schemas/trace";
+import type { CampaignRoute, Persona } from "@/lib/schemas/campaign";
 
 export const runtime = "nodejs";
+
+type RunMode = "fast" | "deep";
+
+// Fast-mode limits
+const FAST_MAX_ROUTES = 3;
+const FAST_MAX_PERSONAS = 3;
+
+
+function selectFastRoutes(routes: CampaignRoute[]): CampaignRoute[] {
+  if (routes.length <= FAST_MAX_ROUTES) return routes;
+  const pick: CampaignRoute[] = [];
+  for (const role of ["safest", "boldest", "conversion"] as const) {
+    const found = routes.find((r) => r.strategicRole === role);
+    if (found) pick.push(found);
+  }
+  return pick.slice(0, FAST_MAX_ROUTES);
+}
+
+function selectFastPersonas(personas: Persona[]): Persona[] {
+  return personas.slice(0, FAST_MAX_PERSONAS);
+}
 
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
@@ -40,7 +63,7 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const { text } = body as Record<string, unknown>;
+  const { text, mode } = body as Record<string, unknown>;
 
   if (typeof text !== "string") {
     return NextResponse.json(
@@ -55,6 +78,15 @@ export async function POST(request: Request): Promise<Response> {
       { status: 400 },
     );
   }
+
+  if (mode !== undefined && mode !== "fast" && mode !== "deep") {
+    return NextResponse.json(
+      { error: "'mode' must be 'fast' or 'deep'." },
+      { status: 400 },
+    );
+  }
+
+  const runMode: RunMode = mode === "deep" ? "deep" : "fast";
 
   const runId = randomUUID();
   const traceEvents: TraceEvent[] = [];
@@ -82,41 +114,52 @@ export async function POST(request: Request): Promise<Response> {
     });
     traceEvents.push(routesResult.traceEvent);
 
+    // Apply fast-mode route limit
+    const routes = runMode === "fast" ? selectFastRoutes(routesResult.routes) : routesResult.routes;
+
     // 4. Build personas
     const personasResult = await buildPersonasStage({
       normalizedBrief: normalizeResult.normalizedBrief,
       strategicTension: tensionResult.strategicTension,
-      routes: routesResult.routes,
+      routes,
       runId,
     });
     traceEvents.push(personasResult.traceEvent);
+
+    // Apply fast-mode persona limit
+    const personas = runMode === "fast" ? selectFastPersonas(personasResult.personas) : personasResult.personas;
 
     // 5. Simulate reactions
     const simulationsResult = await simulateReactionsStage({
       normalizedBrief: normalizeResult.normalizedBrief,
       strategicTension: tensionResult.strategicTension,
-      routes: routesResult.routes,
-      personas: personasResult.personas,
+      routes,
+      personas,
       runId,
     });
     traceEvents.push(simulationsResult.traceEvent);
 
     // 6. Score routes (deterministic)
     const scoresResult = await scoreRoutesStage({
-      routes: routesResult.routes,
-      personas: personasResult.personas,
+      routes,
+      personas,
       simulations: simulationsResult.simulations,
       runId,
     });
     traceEvents.push(scoresResult.traceEvent);
 
-    // 7. Pre-mortem review
+    // 7. Pre-mortem review — compact simulations in fast mode to reduce prompt size
+    const premortemSimulations =
+      runMode === "fast"
+        ? (compactSimulations(simulationsResult.simulations) as unknown as typeof simulationsResult.simulations)
+        : simulationsResult.simulations;
+
     const premortemResult = await premortemReviewStage({
       normalizedBrief: normalizeResult.normalizedBrief,
       strategicTension: tensionResult.strategicTension,
-      routes: routesResult.routes,
-      personas: personasResult.personas,
-      simulations: simulationsResult.simulations,
+      routes,
+      personas,
+      simulations: premortemSimulations,
       scores: scoresResult.scores,
       runId,
     });
@@ -124,8 +167,8 @@ export async function POST(request: Request): Promise<Response> {
 
     // 8. Compare routes (deterministic)
     const comparisonResult = await compareRoutesStage({
-      routes: routesResult.routes,
-      personas: personasResult.personas,
+      routes,
+      personas,
       simulations: simulationsResult.simulations,
       scores: scoresResult.scores,
       premortemReview: premortemResult.review,
@@ -138,8 +181,8 @@ export async function POST(request: Request): Promise<Response> {
       status: "completed",
       normalizedBrief: normalizeResult.normalizedBrief,
       strategicTension: tensionResult.strategicTension,
-      routes: routesResult.routes,
-      personas: personasResult.personas,
+      routes,
+      personas,
       simulations: simulationsResult.simulations,
       scores: scoresResult.scores,
       premortemReview: premortemResult.review,
@@ -183,3 +226,4 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 }
+

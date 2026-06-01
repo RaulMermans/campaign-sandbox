@@ -179,3 +179,65 @@ describe("POST /api/campaign/run – mock mode", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Run mode: fast/deep
+// ---------------------------------------------------------------------------
+
+describe("POST /api/campaign/run – run mode", () => {
+  it("accepts default (no mode specified) as fast mode and returns 200", async () => {
+    const response = await POST(makeRequest({ text: VALID_BRIEF }));
+    expect(response.status).toBe(200);
+  });
+
+  it("accepts mode='fast' and returns 200", async () => {
+    const response = await POST(makeRequest({ text: VALID_BRIEF, mode: "fast" }));
+    expect(response.status).toBe(200);
+  });
+
+  it("accepts mode='deep' and returns 200", async () => {
+    const response = await POST(makeRequest({ text: VALID_BRIEF, mode: "deep" }));
+    expect(response.status).toBe(200);
+  });
+
+  it("rejects invalid mode", async () => {
+    const response = await POST(makeRequest({ text: VALID_BRIEF, mode: "turbo" }));
+    expect(response.status).toBe(400);
+    const b = (await response.json()) as { error: string };
+    expect(b.error).toContain("mode");
+  });
+
+  it("fast mode returns at most 3 routes", async () => {
+    const response = await POST(makeRequest({ text: VALID_BRIEF, mode: "fast" }));
+    expect(response.status).toBe(200);
+    const b = (await response.json()) as CampaignRunOutput;
+    expect(b.routes.length).toBeLessThanOrEqual(3);
+  });
+
+  it("fast mode returns at most 3 personas", async () => {
+    const response = await POST(makeRequest({ text: VALID_BRIEF, mode: "fast" }));
+    expect(response.status).toBe(200);
+    const b = (await response.json()) as CampaignRunOutput;
+    expect(b.personas.length).toBeLessThanOrEqual(3);
+  });
+
+  it("fast mode response validates against campaignRunOutputSchema", async () => {
+    const response = await POST(makeRequest({ text: VALID_BRIEF, mode: "fast" }));
+    const b = (await response.json()) as CampaignRunOutput;
+    expect(() => campaignRunOutputSchema.parse(b)).not.toThrow();
+  });
+
+  it("trace events still include all expected stage IDs in fast mode", async () => {
+    const response = await POST(makeRequest({ text: VALID_BRIEF, mode: "fast" }));
+    const b = (await response.json()) as CampaignRunOutput;
+    const stageIds = b.traceEvents.map((e) => e.stageId);
+    expect(stageIds).toContain("normalize_brief");
+    expect(stageIds).toContain("extract_strategic_tension");
+    expect(stageIds).toContain("generate_campaign_routes");
+    expect(stageIds).toContain("build_personas");
+    expect(stageIds).toContain("simulate_reactions");
+    expect(stageIds).toContain("score_routes");
+    expect(stageIds).toContain("premortem_review");
+    expect(stageIds).toContain("compare_routes");
+  });
+});

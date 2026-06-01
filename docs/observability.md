@@ -37,6 +37,19 @@ Mock providers always set `costUsd: 0`. Token counts are `undefined` in mock mod
 - `simulate_reactions`: `"mock-reaction-simulator"`
 - `premortem_review`: `"mock-premortem-reviewer"`
 
+## Run metadata panel
+
+The UI includes a `RunMetadataPanel` component that derives the following display fields from trace events at render time:
+
+- **Provider** — derived from `traceEvent.provider` values across all stages
+- **Model** — derived from `traceEvent.model` (LLM stages only)
+- **Total runtime** — sum of all `durationMs` values
+- **LLM runtime** — sum of `durationMs` for non-deterministic stages
+- **Stage count**, **route count**, **persona count**, **simulation count**
+- **Recommended route** — from `comparison.recommendedRouteId`
+
+No API keys or raw env vars are included in these fields.
+
 ## What is not logged
 
 - API keys or auth credentials
@@ -45,7 +58,7 @@ Mock providers always set `costUsd: 0`. Token counts are `undefined` in mock mod
 
 ## Current storage
 
-V1 stores trace events in mock run objects only. Later versions should persist them with campaign runs.
+V1 stores trace events in the run response only. No persistence. Later versions should persist trace events with campaign runs.
 
 ## Stage-by-stage status
 
