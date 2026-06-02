@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   campaignExecutionPlanSchema,
   campaignRouteSchema,
+  humanSelectionSchema,
   normalizedCampaignBriefSchema,
   personaSchema,
   personaSimulationSchema,
@@ -29,14 +30,7 @@ export const workflowNodeSchema = z
   })
   .strict();
 
-export const humanSelectionSchema = z
-  .object({
-    selectedRouteId: z.string().min(1),
-    selectedBy: z.string().min(1),
-    rationale: z.string().min(1),
-    selectedAt: isoDateTimeSchema,
-  })
-  .strict();
+export { humanSelectionSchema };
 
 export const campaignRunSchema = z
   .object({

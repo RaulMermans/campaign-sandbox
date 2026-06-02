@@ -26,6 +26,6 @@ describe("mock campaign workflow", () => {
     expect(run.status).toBe("completed");
     expect(run.humanSelection?.selectedRouteId).toBe("route-uniform-for-motion");
     expect(run.executionPlan?.selectedRouteId).toBe("route-uniform-for-motion");
-    expect(run.executionPlan?.metrics.length).toBeGreaterThan(0);
+    expect(run.executionPlan?.measurementPlan.length).toBeGreaterThan(0);
   });
 });

@@ -16,9 +16,9 @@ Deterministic code owns orchestration, schema validation, scoring weights, trace
 | `score_routes` | **Deterministic** | `deterministic` (no LLM) |
 | `premortem_review` | **Real (optional)** | `mock` (default) or `openai` |
 | `compare_routes` | **Deterministic** | `deterministic` (no LLM) |
-| `human_selection` | Human gate | — |
-| `generate_execution_plan` | Mocked / not implemented | — |
-| `export_artifact` | Mocked / not implemented | — |
+| `human_selection` | Local explicit user action | — |
+| `generate_execution_plan` | **Real (optional)** | `mock` (default) or `openai` |
+| `export_artifact` | Not implemented | — |
 
 ## Server boundary
 
@@ -36,6 +36,7 @@ Real LLM code runs exclusively server-side:
 - `app/api/campaign/scores/route.ts` — scoring API endpoint. Deterministic. Works without `OPENAI_API_KEY`.
 - `app/api/campaign/premortem/route.ts` — pre-mortem review API endpoint.
 - `app/api/campaign/comparison/route.ts` — comparison API endpoint. Deterministic. Works without `OPENAI_API_KEY`.
+- `app/api/campaign/execution-plan/route.ts` — execution plan API endpoint. Called after explicit human route selection. Accepts a completed run plus `selectedRouteId`. Generates a plan for the selected route only. Never generates a plan without explicit user selection.
 
 Client components call `/api/campaign/run`, not stage functions directly. No API keys or env vars are exposed to the browser.
 

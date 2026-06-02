@@ -320,24 +320,97 @@ function buildExecutionPlan(selectedRouteId: string): CampaignExecutionPlan {
 
   return {
     selectedRouteId: selectedRoute.id,
-    selectedRouteName: selectedRoute.name,
-    assumptions: ["Capsule name resolves by production week", "Pop-up remains optional", "Shoot budget stays below EUR7k"],
-    objectives: ["Sell capsule", "Grow email list", "Increase cultural relevance without hype language"],
+    planTitle: `${selectedRoute.name} — Execution Plan`,
+    strategicSummary: `${selectedRoute.concept} This plan focuses on ${selectedRoute.strategicRole} positioning with a restrained, editorial approach suited to the NODO audience.`,
+    assumptions: [
+      "Capsule name resolves by production week",
+      "Pop-up remains optional and does not anchor the primary campaign",
+      "Shoot budget stays below EUR 7,000 excluding product",
+      "Synthetic audience reactions are planning hypotheses only and have not been validated with real customers",
+    ],
+    launchPhases: [
+      {
+        phase: "Teaser",
+        objective: "Build anticipation and grow the email waitlist without revealing the full capsule",
+        timing: "T-14 to T-1",
+        keyActions: ["Name reveal post", "detail crop series", "email waitlist gate"],
+        deliverables: ["Teaser carousel (3 posts)", "Waitlist landing page", "Email signup form"],
+      },
+      {
+        phase: "Launch",
+        objective: "Drive initial sales and direct traffic from editorial storytelling",
+        timing: "Launch week",
+        keyActions: ["Hero editorial story", "product edit tiles", "email early access to waitlist", "pop-up RSVP if confirmed"],
+        deliverables: ["Hero story (5 posts)", "Product edit carousel", "Early access email", "Launch email"],
+      },
+      {
+        phase: "Follow-up",
+        objective: "Sustain engagement and convert remaining intent through proof and community",
+        timing: "T+7 to T+21",
+        keyActions: ["Styling proof posts", "customer saves content", "pop-up or city note content if applicable"],
+        deliverables: ["3 follow-up posts", "Post-launch email", "Optional pop-up recap"],
+      },
+    ],
     channelPlan: [
-      { channel: "Instagram", role: "Primary visual storytelling and launch traffic", cadence: "4 teasers, 5 launch posts, 6 follow-ups" },
-      { channel: "Email", role: "Early access, edit framing, conversion", cadence: "Teaser, launch, last-call, post-launch story" },
-      { channel: "TikTok", role: "Lightweight detail and movement clips", cadence: "3 restrained edits if assets are strong" },
+      {
+        channel: "Instagram",
+        role: "Primary visual storytelling and launch traffic",
+        recommendedAssets: ["hero editorial stills", "detail reels", "product edit carousels"],
+        notes: "4 teasers, 5 launch posts, 6 follow-ups — restrained cadence consistent with brand tone",
+      },
+      {
+        channel: "Email",
+        role: "Early access, editorial framing, and conversion",
+        recommendedAssets: ["email header set", "waitlist confirmation", "early access template", "last-call template"],
+        notes: "Teaser → launch → last-call → post-launch story sequence",
+      },
+      {
+        channel: "TikTok",
+        role: "Lightweight movement and detail clips if assets allow",
+        recommendedAssets: ["short product detail edits", "behind-the-scenes clips"],
+        notes: "3 restrained edits only if assets are strong — avoid forced or performative content",
+      },
     ],
-    assetList: ["hero editorial stills", "route detail reels", "email header set", "product edit tiles", "pop-up poster template"],
-    timeline: [
-      { phase: "Teaser", timing: "T-14 to T-1", actions: ["Name reveal", "detail crops", "email waitlist"] },
-      { phase: "Launch", timing: "Launch week", actions: ["Hero story", "product edits", "email early access", "route comparison for internal team"] },
-      { phase: "Follow-up", timing: "T+7 to T+21", actions: ["styling proof", "customer saves", "pop-up or city note content"] },
+    assetList: [
+      "hero editorial stills (city transitional spaces: stairwells, cafe counters, studio corners)",
+      "detail crop series (product texture and construction)",
+      "product edit tiles (individual item, clean background)",
+      "email header set (desktop and mobile)",
+      "pop-up poster template (if city is confirmed)",
     ],
-    metrics: ["sell-through by product", "email signup conversion", "Instagram saves", "site sessions from social", "pop-up RSVP if confirmed"],
-    risks: ["Visual subtlety may underperform", "Timeline delay may reduce teaser runway", "Pop-up uncertainty may confuse calls to action"],
-    copyExamples: ["For days with more than one place in them.", "A quiet uniform for temporary coordinates."],
-    nextActions: ["Confirm capsule name", "Lock pop-up decision", "Create shot list", "Define email signup incentive"],
+    copyExamples: [
+      "For days with more than one place in them.",
+      "A quiet uniform for temporary coordinates.",
+      "Between meetings. Between cities. Between versions of the same plan.",
+    ],
+    measurementPlan: [
+      { metric: "Sell-through rate by product", purpose: "Understand which products drove actual purchase conversion" },
+      { metric: "Email signup conversion", purpose: "Measure campaign's ability to build owned audience" },
+      { metric: "Instagram saves per post", purpose: "Proxy for genuine interest vs. passive scroll" },
+      { metric: "Site sessions from social", purpose: "Attribute traffic and assess content effectiveness" },
+      { metric: "Pop-up RSVP count (if confirmed)", purpose: "Gauge local event intent before confirming city" },
+    ],
+    risksAndMitigations: [
+      {
+        risk: "Visual subtlety may underperform in algorithmic feeds that reward high-contrast or high-energy content",
+        mitigation: "Prioritise saves and shares as success metrics over reach — test one bolder post to compare without abandoning brand tone",
+      },
+      {
+        risk: "Timeline delay may reduce teaser runway and compress launch pressure",
+        mitigation: "Define a minimum teaser window of 5 days and identify which assets can be repurposed if production slips",
+      },
+      {
+        risk: "Pop-up uncertainty may confuse calls to action if the city is not confirmed before launch",
+        mitigation: "Keep pop-up messaging optional and layer it in only once confirmed — do not anchor the main campaign to it",
+      },
+    ],
+    nextActions: [
+      "Confirm capsule name before teaser window opens",
+      "Lock pop-up city decision at least 10 days before launch",
+      "Create final shot list aligned to selected route creative territory",
+      "Define email signup incentive (early access, editorial PDF, or discount)",
+      "Brief photographer with route concept and tone guidance",
+    ],
   };
 }
 

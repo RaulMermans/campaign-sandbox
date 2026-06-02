@@ -11,8 +11,14 @@ import { ExecutiveSummaryPanel } from "@/components/run/executive-summary-panel"
 import { RunMetadataPanel } from "@/components/run/run-metadata-panel";
 import { SectionNav } from "@/components/run/section-nav";
 import { CollapsibleSection } from "@/components/run/collapsible-section";
+import { ExecutionPlanPanel } from "@/components/run/execution-plan-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { CampaignRunOutput, RouteScore } from "@/lib/schemas/campaign";
+import type {
+  CampaignExecutionPlan,
+  CampaignRunOutput,
+  RouteScore,
+} from "@/lib/schemas/campaign";
+import type { TraceEvent } from "@/lib/schemas/trace";
 import { NODO_SAMPLE_BRIEF } from "@/lib/sample-briefs";
 
 const WORKFLOW_STEPS = [
@@ -64,11 +70,21 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
 
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  const [executionPlan, setExecutionPlan] = useState<CampaignExecutionPlan | null>(null);
+  const [executionTraceEvent, setExecutionTraceEvent] = useState<TraceEvent | null>(null);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+
   async function handleRun() {
     setIsRunning(true);
     setError(null);
     setRun(null);
     setActiveStep(0);
+    setSelectedRouteId(null);
+    setExecutionPlan(null);
+    setExecutionTraceEvent(null);
+    setPlanError(null);
 
     const stepTimer = setInterval(() => {
       setActiveStep((s) => (s < WORKFLOW_STEPS.length - 1 ? s + 1 : s));
@@ -95,6 +111,55 @@ export default function Home() {
     } finally {
       clearInterval(stepTimer);
       setIsRunning(false);
+    }
+  }
+
+  async function handleGeneratePlan() {
+    if (!run || !selectedRouteId) return;
+
+    setIsGeneratingPlan(true);
+    setPlanError(null);
+    setExecutionPlan(null);
+    setExecutionTraceEvent(null);
+
+    try {
+      const response = await fetch("/api/campaign/execution-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          selectedRouteId,
+          normalizedBrief: run.normalizedBrief,
+          strategicTension: run.strategicTension,
+          routes: run.routes,
+          personas: run.personas,
+          simulations: run.simulations,
+          scores: run.scores,
+          premortemReview: run.premortemReview,
+          comparison: run.comparison,
+          runId: run.runId,
+        }),
+      });
+      const data: unknown = await response.json();
+      if (!response.ok) {
+        const msg =
+          typeof data === "object" && data !== null && "error" in data
+            ? String((data as Record<string, unknown>).error)
+            : "Execution plan generation failed.";
+        setPlanError(msg);
+        return;
+      }
+      const result = data as { executionPlan: CampaignExecutionPlan; traceEvent: TraceEvent };
+      setExecutionPlan(result.executionPlan);
+      setExecutionTraceEvent(result.traceEvent);
+
+      // Scroll to plan after short delay
+      setTimeout(() => {
+        document.getElementById("execution-plan")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    } catch {
+      setPlanError("Network error. Please try again.");
+    } finally {
+      setIsGeneratingPlan(false);
     }
   }
 
@@ -175,19 +240,55 @@ export default function Home() {
             <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>
           ) : null}
 
-          {run ? <CampaignRunResult run={run} /> : null}
+          {run ? (
+            <CampaignRunResult
+              run={run}
+              selectedRouteId={selectedRouteId}
+              onSelectRoute={setSelectedRouteId}
+              onGeneratePlan={handleGeneratePlan}
+              isGeneratingPlan={isGeneratingPlan}
+              planError={planError}
+              executionPlan={executionPlan}
+              executionTraceEvent={executionTraceEvent}
+            />
+          ) : null}
         </div>
       </section>
     </main>
   );
 }
 
-function CampaignRunResult({ run }: { run: CampaignRunOutput }) {
+interface CampaignRunResultProps {
+  run: CampaignRunOutput;
+  selectedRouteId: string | null;
+  onSelectRoute: (routeId: string) => void;
+  onGeneratePlan: () => void;
+  isGeneratingPlan: boolean;
+  planError: string | null;
+  executionPlan: CampaignExecutionPlan | null;
+  executionTraceEvent: TraceEvent | null;
+}
+
+function CampaignRunResult({
+  run,
+  selectedRouteId,
+  onSelectRoute,
+  onGeneratePlan,
+  isGeneratingPlan,
+  planError,
+  executionPlan,
+  executionTraceEvent,
+}: CampaignRunResultProps) {
   const scoreRank = [...run.scores]
     .sort((a, b) => b.weightedTotal - a.weightedTotal)
     .reduce((map, s, i) => { map.set(s.routeId, i + 1); return map; }, new Map<string, number>());
 
   const scoreLabels = deriveScoreLabels(run.scores);
+  const recommendedRouteId = run.comparison.recommendedRouteId;
+
+  const allTraceEvents = executionTraceEvent
+    ? [...run.traceEvents, executionTraceEvent]
+    : run.traceEvents;
 
   return (
     <section className="grid gap-4">
@@ -295,33 +396,104 @@ function CampaignRunResult({ run }: { run: CampaignRunOutput }) {
             <CardTitle>Human Route Selection</CardTitle>
           </CardHeader>
           <CardContent className="text-sm leading-6 text-stone-700">
-            <p>
-              Human selection and execution plan generation are not yet implemented in this sprint. Select a route and
-              generate a plan in a future release.
+            <p className="text-stone-600">
+              Review the comparison and select the route you want to develop into an execution plan.
+              The system recommendation is guidance only — your judgment takes precedence.
             </p>
+
+            {/* Route selection buttons */}
             <div className="mt-4 flex flex-wrap gap-3">
-              {run.routes.map((route) => (
-                <button
-                  key={route.id}
-                  type="button"
-                  disabled
-                  className="cursor-not-allowed rounded-md border border-stone-300 bg-white px-3 py-2 font-medium text-stone-400"
-                >
-                  Select {route.name}
-                </button>
-              ))}
+              {run.routes.map((route) => {
+                const isSelected = selectedRouteId === route.id;
+                const isRecommended = recommendedRouteId === route.id;
+
+                return (
+                  <button
+                    key={route.id}
+                    type="button"
+                    onClick={() => onSelectRoute(route.id)}
+                    className={[
+                      "rounded-md border px-4 py-2.5 text-sm font-medium transition-colors",
+                      isSelected
+                        ? "border-stone-900 bg-stone-900 text-white"
+                        : "border-stone-300 bg-white text-stone-700 hover:border-stone-500 hover:text-stone-950",
+                    ].join(" ")}
+                  >
+                    {route.name}
+                    {isRecommended ? (
+                      <span className={[
+                        "ml-2 rounded-full px-1.5 py-0.5 text-xs",
+                        isSelected
+                          ? "bg-white/20 text-white"
+                          : "bg-stone-100 text-stone-500",
+                      ].join(" ")}>
+                        recommended
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Confirmation and generate button */}
+            {selectedRouteId ? (
+              <div className="mt-5 rounded-md border border-stone-200 bg-stone-50 p-4">
+                <p className="text-sm text-stone-700">
+                  <span className="font-semibold">Selected route:</span>{" "}
+                  {run.routes.find((r) => r.id === selectedRouteId)?.name ?? selectedRouteId}
+                </p>
+                <p className="mt-1 text-xs text-stone-400">
+                  Generating the execution plan is server-side. You can change your selection at any time before generating.
+                </p>
+                <button
+                  type="button"
+                  onClick={onGeneratePlan}
+                  disabled={isGeneratingPlan}
+                  className="mt-3 rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-800 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {isGeneratingPlan ? "Generating execution plan…" : "Generate execution plan"}
+                </button>
+              </div>
+            ) : null}
+
+            {planError ? (
+              <div className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {planError}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
+      </section>
+
+      {/* Execution plan section */}
+      <section id="execution-plan">
+        {executionPlan ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Execution Plan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ExecutionPlanPanel plan={executionPlan} />
+            </CardContent>
+          </Card>
+        ) : isGeneratingPlan ? (
+          <div className="rounded-lg border border-stone-200 bg-white p-5 text-sm text-stone-400">
+            Generating execution plan for{" "}
+            <span className="font-medium text-stone-700">
+              {run.routes.find((r) => r.id === selectedRouteId)?.name ?? selectedRouteId}
+            </span>
+            …
+          </div>
+        ) : null}
       </section>
 
       <CollapsibleSection
         id="trace"
         title="Trace Timeline"
-        preview={`${run.traceEvents.length} stage events recorded.`}
+        preview={`${allTraceEvents.length} stage events recorded.`}
       >
         <div className="p-1">
-          <TraceTimeline events={run.traceEvents} />
+          <TraceTimeline events={allTraceEvents} />
         </div>
       </CollapsibleSection>
     </section>

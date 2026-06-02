@@ -7,8 +7,9 @@ const SECTIONS = [
   { id: "simulations", label: "Simulations" },
   { id: "risks", label: "Risks" },
   { id: "comparison", label: "Comparison" },
-  { id: "trace", label: "Trace" },
   { id: "selection", label: "Selection" },
+  { id: "execution-plan", label: "Execution Plan" },
+  { id: "trace", label: "Trace" },
 ];
 
 export function SectionNav() {

@@ -124,8 +124,9 @@ The app builds and runs with no env vars set (defaults to mock mode). See `.env.
 | `score_routes` | **Deterministic** (no LLM, no env vars needed) |
 | `premortem_review` | **Real (optional)** via server-side env |
 | `compare_routes` | **Deterministic** (no LLM, no env vars needed) |
-| `generate_execution_plan` | Mocked / not implemented |
-| `export_artifact` | Mocked / not implemented |
+| `human_selection` | Local explicit user action (UI only, no persistence) |
+| `generate_execution_plan` | **Real (optional)** via server-side env — requires explicit human route selection |
+| `export_artifact` | Not implemented |
 
 LLM stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. Deterministic stages (`score_routes`, `compare_routes`) work in all modes without any env vars. The app builds and runs fully without any env vars (mock mode).
 

@@ -45,7 +45,7 @@ Set these in **Vercel → Project → Settings → Environment Variables**.
 Deploy without setting any environment variables. The app runs fully in mock mode:
 
 - Brief input works.
-- Mock normalized brief, routes, simulations, scores, and execution plan are returned.
+- Mock normalized brief, routes, simulations, scores, and execution plan are returned when a route is selected.
 - No OpenAI calls are made.
 - No secrets are required.
 
@@ -64,7 +64,8 @@ OPENAI_API_KEY=sk-...
 
 With this configuration:
 
-- `POST /api/campaign/run` runs the full eight-stage chain. LLM stages use OpenAI; `score_routes` and `compare_routes` are deterministic.
+- `POST /api/campaign/run` runs the full eight-stage chain. LLM stages use OpenAI; `score_routes` and `compare_routes` are deterministic. After reviewing the result, the user selects a route and calls `POST /api/campaign/execution-plan` to generate the final plan.
+- `POST /api/campaign/execution-plan` generates a campaign execution plan for the selected route. Called after explicit human route selection. Requires a completed run payload plus `selectedRouteId`.
 - `POST /api/campaign/normalize` calls OpenAI and returns a real normalized brief (individual stage endpoint).
 - `POST /api/campaign/tension` calls OpenAI and returns a real strategic tension.
 - `POST /api/campaign/routes` calls OpenAI and returns 3–5 real campaign routes.
@@ -146,8 +147,10 @@ Do not use `NEXT_PUBLIC_` prefix for any of these variables. They are server-sid
 - **`generate_campaign_routes` is strategic route generation only.** It does not use real market data or produce performance predictions. Routes are decision support, not campaign forecasts.
 - **`extract_strategic_tension` is strategic interpretation only.** It does not use real market data or produce predictions.
 - **Comparison is decision support, not a prediction.** The `recommendedRouteId` is a scoring-based suggestion. Human selection is required before generating an execution plan.
-- **Human selection, execution plan generation, and export are not implemented.** These require the human gate before final plan synthesis.
-- **No database, auth, or persistence.** Campaign runs are not saved between sessions.
+- **Human selection is explicit.** No execution plan is generated automatically. The user must click a route selection button and then click "Generate execution plan." The system recommendation is shown as guidance only.
+- **Execution plan generation is server-side only.** `POST /api/campaign/execution-plan` accepts a completed run plus `selectedRouteId`. No client-side LLM calls. No API keys exposed to the browser.
+- **Export is not implemented.** The `export_artifact` stage is not yet built.
+- **No database, auth, or persistence.** Campaign runs and execution plans are held in React state only. Refreshing the page clears them.
 - **No PDF export in v1.** The export artifact boundary is a placeholder.
 - **No billing, no multi-tenant auth.** V1 is a demo-quality tool.
 

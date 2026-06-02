@@ -36,6 +36,7 @@ Mock providers always set `costUsd: 0`. Token counts are `undefined` in mock mod
 - `build_personas`: `"mock-persona-builder"`
 - `simulate_reactions`: `"mock-reaction-simulator"`
 - `premortem_review`: `"mock-premortem-reviewer"`
+- `generate_execution_plan`: `"mock-execution-planner"`
 
 ## Run metadata panel
 
@@ -72,6 +73,8 @@ V1 stores trace events in the run response only. No persistence. Later versions 
 | `score_routes` | Always: `provider: "deterministic"`, `model: "score-routes-v1"`, `costUsd: 0`, `promptVersion: undefined` |
 | `premortem_review` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | `compare_routes` | Always: `provider: "deterministic"`, `model: "compare-routes-v1"`, `costUsd: 0`, `promptVersion: undefined` |
+| `human_selection` | Local UI action — no trace event emitted by the server |
+| `generate_execution_plan` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise. `promptVersion: "generate_execution_plan.v1"`. Only emitted after explicit human route selection. |
 
 The six LLM stages emit `provider`, `model`, `promptVersion`, `inputTokens`, `outputTokens`, and `durationMs` in their trace events.
 
@@ -95,7 +98,7 @@ In mock mode, `provider` is `"mock"`, `costUsd` is `0`, and token fields are `un
 
 | Mode | LLM stages | score_routes | compare_routes | Later stages |
 |---|---|---|---|---|
-| `CAMPAIGN_SANDBOX_LLM_PROVIDER=mock` (default) | Mock trace events | Deterministic | Deterministic | Not implemented |
-| `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` | Real LLM telemetry | Deterministic | Deterministic | Not implemented |
+| `CAMPAIGN_SANDBOX_LLM_PROVIDER=mock` (default) | Mock trace events | Deterministic | Deterministic | Mock (after human selection) |
+| `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` | Real LLM telemetry | Deterministic | Deterministic | Real LLM (after human selection) |
 
 The Vercel build phase does not require `OPENAI_API_KEY` — the key is only used at runtime when provider is `openai`.

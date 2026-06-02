@@ -234,39 +234,77 @@ export const routeComparisonMatrixSchema = z
     }
   });
 
+export const humanSelectionSchema = z
+  .object({
+    selectedRouteId: z.string().min(1),
+    selectedAt: z.string().datetime().optional(),
+    selectedBy: z.string().optional(),
+    rationale: z.string().optional(),
+  })
+  .strict();
+
+export type HumanSelection = z.infer<typeof humanSelectionSchema>;
+
 export const campaignExecutionPlanSchema = z
   .object({
     selectedRouteId: z.string().min(1),
-    selectedRouteName: z.string().min(1),
+    planTitle: z.string().min(1),
+    strategicSummary: z.string().min(1),
     assumptions: z.array(z.string().min(1)).min(1),
-    objectives: z.array(z.string().min(1)).min(1),
+    launchPhases: z
+      .array(
+        z
+          .object({
+            phase: z.string().min(1),
+            objective: z.string().min(1),
+            timing: z.string().min(1),
+            keyActions: z.array(z.string().min(1)).min(1),
+            deliverables: z.array(z.string().min(1)).min(1),
+          })
+          .strict(),
+      )
+      .min(1),
     channelPlan: z
       .array(
         z
           .object({
             channel: z.string().min(1),
             role: z.string().min(1),
-            cadence: z.string().min(1),
+            recommendedAssets: z.array(z.string().min(1)).min(1),
+            notes: z.string().optional(),
           })
           .strict(),
       )
       .min(1),
     assetList: z.array(z.string().min(1)).min(1),
-    timeline: z
+    copyExamples: z.array(z.string().min(1)).min(1),
+    measurementPlan: z
       .array(
         z
           .object({
-            phase: z.string().min(1),
-            timing: z.string().min(1),
-            actions: z.array(z.string().min(1)).min(1),
+            metric: z.string().min(1),
+            purpose: z.string().min(1),
           })
           .strict(),
       )
       .min(1),
-    metrics: z.array(z.string().min(1)).min(1),
-    risks: z.array(z.string().min(1)).min(1),
-    copyExamples: z.array(z.string().min(1)).min(1),
+    risksAndMitigations: z
+      .array(
+        z
+          .object({
+            risk: z.string().min(1),
+            mitigation: z.string().min(1),
+          })
+          .strict(),
+      )
+      .min(1),
     nextActions: z.array(z.string().min(1)).min(1),
+  })
+  .strict();
+
+export const campaignExecutionPlanOutputSchema = z
+  .object({
+    executionPlan: campaignExecutionPlanSchema,
   })
   .strict();
 
@@ -375,6 +413,7 @@ export type PremortemReview = z.infer<typeof premortemReviewSchema>;
 export type RouteComparisonRow = z.infer<typeof routeComparisonRowSchema>;
 export type RouteComparisonMatrix = z.infer<typeof routeComparisonMatrixSchema>;
 export type CampaignExecutionPlan = z.infer<typeof campaignExecutionPlanSchema>;
+export type CampaignExecutionPlanOutput = z.infer<typeof campaignExecutionPlanOutputSchema>;
 
 export const campaignRunOutputSchema = z
   .object({

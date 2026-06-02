@@ -49,7 +49,7 @@ Even when all eight implemented stages run (six with a real LLM provider, two de
 - Route scores are bounded strategic estimates from deterministic scoring logic. They are not predictions, probabilities, or market research.
 - The pre-mortem review is a structured risk analysis — not market research, not a success prediction.
 - The comparison matrix is a decision-support tool built from deterministic scoring signals. It is not a prediction or market validation.
-- Human selection and execution plan generation are not implemented.
+- Human selection is explicit: no execution plan is generated until the user clicks a route button and then clicks "Generate execution plan." The system recommendation from `compare_routes` is guidance only and is never auto-applied.
 - Export artifact is not implemented.
 
 ## `extract_strategic_tension` safety rules
@@ -145,6 +145,26 @@ Even when all eight implemented stages run (six with a real LLM provider, two de
 - `budget.label` should be `"Not specified"` when the brief contains no budget information.
 - The UI must never display `"USD 0-0"` or equivalent for unknown budget.
 - The `budget` field in `normalizedCampaignBriefSchema` is optional — it may be absent.
+
+## `POST /api/campaign/execution-plan` safety rules
+
+- Accepts a completed run result plus an explicit `selectedRouteId`. Never accepts raw brief text.
+- Validates `selectedRouteId` against the provided routes array. Returns 422 with `INVALID_SELECTED_ROUTE` if the ID is not found.
+- Generates a plan for the selected route only. Does not produce plans for other routes.
+- The execution plan is a strategic planning document, not market research.
+- Synthetic audience reactions used in plan generation are planning hypotheses only. They must not be presented as validated customer evidence.
+- The plan must not claim predicted success rates, conversion probabilities, or ROI.
+- `assumptions` in the plan must explicitly state that synthetic reactions are hypotheses, not validated evidence.
+- Claims touching time, sustainability, savings, or behavior change require legal and substantiation review before publication — the plan must note this.
+- Provider errors, LLM JSON parse failures, schema validation failures, and workflow validation failures are caught and sanitized. Raw model output, stack traces, and API keys are never returned.
+
+## `generate_execution_plan` stage safety rules
+
+- Must validate `selectedRouteId` via `validateSelectedRoute` before calling the LLM.
+- Throws `WorkflowValidationError` if `selectedRouteId` is not found.
+- Output validated against `campaignExecutionPlanOutputSchema` before returning.
+- Retries once on `LlmJsonParseError` or `LlmSchemaValidationError`. Does not retry on provider or network errors.
+- Never returns unvalidated model output.
 
 ## Future LLM integrations
 
