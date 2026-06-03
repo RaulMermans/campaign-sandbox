@@ -1,5 +1,6 @@
 // Tests for budget handling in schema and display logic.
 
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { normalizedCampaignBriefSchema } from "@/lib/schemas/campaign";
 import { formatBudget } from "@/components/brief/normalized-brief-panel";
@@ -34,6 +35,17 @@ function makeMinimalBrief(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+describe("Normalize prompt budget guidance", () => {
+  it("does not include forbidden unknown-budget placeholder examples", () => {
+    const prompt = readFileSync(`${process.cwd()}/prompts/normalize_brief.md`, "utf8");
+
+    expect(prompt).not.toContain('"min": 0');
+    expect(prompt).not.toContain('"max": 0');
+    expect(prompt).not.toContain("USD 0-0");
+    expect(prompt).not.toContain("0-0");
+  });
+});
 
 describe("NormalizedCampaignBrief budget schema", () => {
   it("accepts a brief with no budget field", () => {

@@ -26,12 +26,15 @@ Convert a messy campaign brief into a structured JSON object.
 ## Budget rules
 
 - If budget is explicitly provided as a number or range, parse it into `min`, `max`, `currency`, and `label`.
-- If budget is vague, use a label such as "Low budget" or "Low-medium budget" and set `min` and `max` to null.
+- If budget is vague, output `min` and `max` as null and use a descriptive `label`, e.g. "Low budget" or "Low-medium budget".
 - If budget is absent, output:
-  `"budget": { "label": "Not specified", "min": null, "max": null }`
-- Never use 0 as a placeholder.
+  `"budget": { "min": null, "max": null, "label": "Not specified" }`
+- For a known explicit budget, output a readable object such as:
+  `"budget": { "currency": "EUR", "min": 3000, "max": 7000, "label": "EUR 3,000–7,000" }`
+- Never output 0 as a placeholder for unknown budget.
 - Never output budget as a string.
 - Never output budget as null.
+- Never output a zero-to-zero budget range or any equivalent.
 - Omit `currency` when the budget currency is unknown.
 - Omit `notes` unless the brief states a budget caveat, exclusion, or condition.
 
@@ -48,8 +51,8 @@ Return an object with exactly these top-level fields. Required arrays must have 
   "capsuleDescription": "What the capsule or campaign is about in one or two sentences",
   "products": ["product type 1", "product type 2"],
   "priceRange": {
-    "min": 0,
-    "max": 0,
+    "min": 25,
+    "max": 75,
     "currency": "ISO currency code, e.g. EUR, GBP, USD"
   },
   "objectives": ["Stated objective 1", "Stated objective 2"],
