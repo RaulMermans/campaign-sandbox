@@ -18,6 +18,7 @@ import { premortemReviewStage } from "@/lib/workflow/stages/premortem-review";
 import { compareRoutesStage } from "@/lib/workflow/stages/compare-routes-stage";
 import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
 import { LlmProviderError, LlmJsonParseError, LlmSchemaValidationError, LlmTimeoutError } from "@/lib/llm/errors";
+import { CampaignRunStageError } from "@/lib/workflow/run-errors";
 import { compactSimulations } from "@/lib/workflow/compact-run-context";
 import type { TraceEvent } from "@/lib/schemas/trace";
 import type { CampaignRoute, Persona } from "@/lib/schemas/campaign";
@@ -43,6 +44,66 @@ function selectFastRoutes(routes: CampaignRoute[]): CampaignRoute[] {
 
 function selectFastPersonas(personas: Persona[]): Persona[] {
   return personas.slice(0, FAST_MAX_PERSONAS);
+}
+
+async function runStage<T>(
+  stageId: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    throw new CampaignRunStageError(stageId, error);
+  }
+}
+
+function unwrapStageCause(error: unknown): unknown {
+  return error instanceof CampaignRunStageError ? error.cause : error;
+}
+
+function getReasonCode(error: unknown):
+  | "LLM_PROVIDER_ERROR"
+  | "LLM_JSON_PARSE_ERROR"
+  | "LLM_SCHEMA_VALIDATION_ERROR"
+  | "WORKFLOW_VALIDATION_ERROR"
+  | "UNKNOWN_ERROR" {
+  const cause = unwrapStageCause(error);
+
+  if (cause instanceof LlmProviderError) return "LLM_PROVIDER_ERROR";
+  if (cause instanceof LlmJsonParseError) return "LLM_JSON_PARSE_ERROR";
+  if (cause instanceof LlmSchemaValidationError) return "LLM_SCHEMA_VALIDATION_ERROR";
+  if (cause instanceof WorkflowValidationError) return "WORKFLOW_VALIDATION_ERROR";
+
+  return "UNKNOWN_ERROR";
+}
+
+function logStageErrorForDev(error: CampaignRunStageError, reasonCode: string) {
+  if (process.env.NODE_ENV === "production") return;
+
+  const cause = error.cause;
+
+  const safePayload: Record<string, unknown> = {
+    stageId: error.stageId,
+    reasonCode,
+    causeName:
+      cause instanceof Error ? cause.name : typeof cause,
+  };
+
+  if (
+    cause instanceof LlmSchemaValidationError &&
+    "issues" in cause
+  ) {
+    safePayload.issues = cause.issues;
+  }
+
+  if (
+    cause instanceof WorkflowValidationError &&
+    "issues" in cause
+  ) {
+    safePayload.issues = cause.issues;
+  }
+
+  console.error("[campaign-run]", safePayload);
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -93,59 +154,71 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     // 1. Normalize brief
-    const normalizeResult = await normalizeBriefStage(
-      { text, source: "paste", receivedAt: new Date().toISOString() },
-      runId,
+    const normalizeResult = await runStage("normalize_brief", () =>
+      normalizeBriefStage(
+        { text, source: "paste", receivedAt: new Date().toISOString() },
+        runId,
+      ),
     );
     traceEvents.push(normalizeResult.traceEvent);
 
     // 2. Extract strategic tension
-    const tensionResult = await extractStrategicTensionStage({
-      normalizedBrief: normalizeResult.normalizedBrief,
-      runId,
-    });
+    const tensionResult = await runStage("extract_strategic_tension", () =>
+      extractStrategicTensionStage({
+        normalizedBrief: normalizeResult.normalizedBrief,
+        runId,
+      }),
+    );
     traceEvents.push(tensionResult.traceEvent);
 
     // 3. Generate campaign routes
-    const routesResult = await generateCampaignRoutesStage({
-      normalizedBrief: normalizeResult.normalizedBrief,
-      strategicTension: tensionResult.strategicTension,
-      runId,
-    });
+    const routesResult = await runStage("generate_campaign_routes", () =>
+      generateCampaignRoutesStage({
+        normalizedBrief: normalizeResult.normalizedBrief,
+        strategicTension: tensionResult.strategicTension,
+        runId,
+      }),
+    );
     traceEvents.push(routesResult.traceEvent);
 
     // Apply fast-mode route limit
     const routes = runMode === "fast" ? selectFastRoutes(routesResult.routes) : routesResult.routes;
 
     // 4. Build personas
-    const personasResult = await buildPersonasStage({
-      normalizedBrief: normalizeResult.normalizedBrief,
-      strategicTension: tensionResult.strategicTension,
-      routes,
-      runId,
-    });
+    const personasResult = await runStage("build_personas", () =>
+      buildPersonasStage({
+        normalizedBrief: normalizeResult.normalizedBrief,
+        strategicTension: tensionResult.strategicTension,
+        routes,
+        runId,
+      }),
+    );
     traceEvents.push(personasResult.traceEvent);
 
     // Apply fast-mode persona limit
     const personas = runMode === "fast" ? selectFastPersonas(personasResult.personas) : personasResult.personas;
 
     // 5. Simulate reactions
-    const simulationsResult = await simulateReactionsStage({
-      normalizedBrief: normalizeResult.normalizedBrief,
-      strategicTension: tensionResult.strategicTension,
-      routes,
-      personas,
-      runId,
-    });
+    const simulationsResult = await runStage("simulate_reactions", () =>
+      simulateReactionsStage({
+        normalizedBrief: normalizeResult.normalizedBrief,
+        strategicTension: tensionResult.strategicTension,
+        routes,
+        personas,
+        runId,
+      }),
+    );
     traceEvents.push(simulationsResult.traceEvent);
 
     // 6. Score routes (deterministic)
-    const scoresResult = await scoreRoutesStage({
-      routes,
-      personas,
-      simulations: simulationsResult.simulations,
-      runId,
-    });
+    const scoresResult = await runStage("score_routes", () =>
+      scoreRoutesStage({
+        routes,
+        personas,
+        simulations: simulationsResult.simulations,
+        runId,
+      }),
+    );
     traceEvents.push(scoresResult.traceEvent);
 
     // 7. Pre-mortem review — compact simulations in fast mode to reduce prompt size
@@ -154,26 +227,30 @@ export async function POST(request: Request): Promise<Response> {
         ? (compactSimulations(simulationsResult.simulations) as unknown as typeof simulationsResult.simulations)
         : simulationsResult.simulations;
 
-    const premortemResult = await premortemReviewStage({
-      normalizedBrief: normalizeResult.normalizedBrief,
-      strategicTension: tensionResult.strategicTension,
-      routes,
-      personas,
-      simulations: premortemSimulations,
-      scores: scoresResult.scores,
-      runId,
-    });
+    const premortemResult = await runStage("premortem_review", () =>
+      premortemReviewStage({
+        normalizedBrief: normalizeResult.normalizedBrief,
+        strategicTension: tensionResult.strategicTension,
+        routes,
+        personas,
+        simulations: premortemSimulations,
+        scores: scoresResult.scores,
+        runId,
+      }),
+    );
     traceEvents.push(premortemResult.traceEvent);
 
     // 8. Compare routes (deterministic)
-    const comparisonResult = await compareRoutesStage({
-      routes,
-      personas,
-      simulations: simulationsResult.simulations,
-      scores: scoresResult.scores,
-      premortemReview: premortemResult.review,
-      runId,
-    });
+    const comparisonResult = await runStage("compare_routes", () =>
+      compareRoutesStage({
+        routes,
+        personas,
+        simulations: simulationsResult.simulations,
+        scores: scoresResult.scores,
+        premortemReview: premortemResult.review,
+        runId,
+      }),
+    );
     traceEvents.push(comparisonResult.traceEvent);
 
     const output = campaignRunOutputSchema.parse({
@@ -192,6 +269,63 @@ export async function POST(request: Request): Promise<Response> {
 
     return NextResponse.json(output);
   } catch (err) {
+    // Stage-aware errors: any failure wrapped by runStage
+    if (err instanceof CampaignRunStageError) {
+      const reasonCode = getReasonCode(err);
+      logStageErrorForDev(err, reasonCode);
+
+      if (reasonCode === "LLM_SCHEMA_VALIDATION_ERROR") {
+        return NextResponse.json(
+          {
+            error: "LLM output did not match expected schema.",
+            code: "LLM_SCHEMA_VALIDATION_ERROR",
+            stageId: err.stageId,
+          },
+          { status: 422 },
+        );
+      }
+      if (reasonCode === "LLM_JSON_PARSE_ERROR") {
+        return NextResponse.json(
+          {
+            error: "LLM output was not valid JSON.",
+            code: "LLM_JSON_PARSE_ERROR",
+            stageId: err.stageId,
+          },
+          { status: 422 },
+        );
+      }
+      if (reasonCode === "LLM_PROVIDER_ERROR") {
+        return NextResponse.json(
+          {
+            error: "LLM provider request failed.",
+            code: "LLM_PROVIDER_ERROR",
+            stageId: err.stageId,
+          },
+          { status: 502 },
+        );
+      }
+      if (reasonCode === "WORKFLOW_VALIDATION_ERROR") {
+        return NextResponse.json(
+          {
+            error: "Workflow validation failed.",
+            code: "WORKFLOW_VALIDATION_ERROR",
+            stageId: err.stageId,
+          },
+          { status: 422 },
+        );
+      }
+      return NextResponse.json(
+        {
+          error: "Campaign run failed.",
+          code: "CAMPAIGN_RUN_STAGE_FAILED",
+          stageId: err.stageId,
+          reasonCode: "UNKNOWN_ERROR",
+        },
+        { status: 500 },
+      );
+    }
+
+    // Non-stage errors (e.g. final output schema parse, unexpected throws)
     if (err instanceof WorkflowValidationError) {
       return NextResponse.json(
         {

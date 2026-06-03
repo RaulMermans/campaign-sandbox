@@ -2,10 +2,28 @@
 // Imports the handler directly — no HTTP server needed.
 // Runs in mock mode without any OPENAI_API_KEY.
 
-import { describe, expect, it, beforeAll, afterAll } from "vitest";
+import { describe, expect, it, beforeAll, afterAll, vi } from "vitest";
+
+// vi.mock calls are hoisted above imports by Vitest.
+// Each mock preserves the original implementation as the default so existing tests pass,
+// and allows mockRejectedValueOnce for targeted error injection tests.
+vi.mock("@/lib/workflow/stages/normalize-brief", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/workflow/stages/normalize-brief")>();
+  return { normalizeBriefStage: vi.fn().mockImplementation(actual.normalizeBriefStage) };
+});
+
+vi.mock("@/lib/workflow/stages/score-routes-stage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/workflow/stages/score-routes-stage")>();
+  return { scoreRoutesStage: vi.fn().mockImplementation(actual.scoreRoutesStage) };
+});
+
 import { POST } from "@/app/api/campaign/run/route";
 import { campaignRunOutputSchema } from "@/lib/schemas/campaign";
 import type { CampaignRunOutput } from "@/lib/schemas/campaign";
+import { normalizeBriefStage } from "@/lib/workflow/stages/normalize-brief";
+import { scoreRoutesStage } from "@/lib/workflow/stages/score-routes-stage";
+import { LlmSchemaValidationError, LlmProviderError } from "@/lib/llm/errors";
+import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
 
 function makeRequest(body: unknown): Request {
   return new Request("http://localhost/api/campaign/run", {
@@ -239,5 +257,63 @@ describe("POST /api/campaign/run – run mode", () => {
     expect(stageIds).toContain("score_routes");
     expect(stageIds).toContain("premortem_review");
     expect(stageIds).toContain("compare_routes");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Stage-aware error handling
+// ---------------------------------------------------------------------------
+
+describe("POST /api/campaign/run – stage-aware errors", () => {
+  it("schema validation error from normalize_brief returns stageId and LLM_SCHEMA_VALIDATION_ERROR", async () => {
+    vi.mocked(normalizeBriefStage).mockRejectedValueOnce(
+      new LlmSchemaValidationError("schema mismatch", [{ path: [], message: "bad" }]),
+    );
+    const response = await POST(makeRequest({ text: VALID_BRIEF }));
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(response.status).toBe(422);
+    expect(body.code).toBe("LLM_SCHEMA_VALIDATION_ERROR");
+    expect(body.stageId).toBe("normalize_brief");
+  });
+
+  it("provider error from normalize_brief returns stageId and LLM_PROVIDER_ERROR", async () => {
+    vi.mocked(normalizeBriefStage).mockRejectedValueOnce(
+      new LlmProviderError("provider unavailable"),
+    );
+    const response = await POST(makeRequest({ text: VALID_BRIEF }));
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(response.status).toBe(502);
+    expect(body.code).toBe("LLM_PROVIDER_ERROR");
+    expect(body.stageId).toBe("normalize_brief");
+  });
+
+  it("workflow validation error from score_routes returns stageId and WORKFLOW_VALIDATION_ERROR", async () => {
+    vi.mocked(scoreRoutesStage).mockRejectedValueOnce(
+      new WorkflowValidationError("scores invalid", [{ path: ["scores"], message: "missing" }]),
+    );
+    const response = await POST(makeRequest({ text: VALID_BRIEF }));
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(response.status).toBe(422);
+    expect(body.code).toBe("WORKFLOW_VALIDATION_ERROR");
+    expect(body.stageId).toBe("score_routes");
+  });
+
+  it("stage error response does not include stack, cause, prompt, or raw provider output", async () => {
+    vi.mocked(normalizeBriefStage).mockRejectedValueOnce(
+      new LlmSchemaValidationError("schema mismatch", []),
+    );
+    const response = await POST(makeRequest({ text: VALID_BRIEF }));
+    const bodyStr = await response.text();
+    expect(bodyStr).not.toMatch(/\n\s{2,}at\s+\w/);
+    expect(bodyStr).not.toContain('"stack"');
+    expect(bodyStr).not.toContain('"cause"');
+    expect(bodyStr).not.toContain('"prompt"');
+  });
+
+  it("successful mock-mode run still returns 200 after error tests", async () => {
+    const response = await POST(makeRequest({ text: VALID_BRIEF }));
+    expect(response.status).toBe(200);
+    const b = (await response.json()) as CampaignRunOutput;
+    expect(() => campaignRunOutputSchema.parse(b)).not.toThrow();
   });
 });

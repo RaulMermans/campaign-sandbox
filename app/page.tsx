@@ -21,6 +21,12 @@ import type {
 import type { TraceEvent } from "@/lib/schemas/trace";
 import { NODO_SAMPLE_BRIEF } from "@/lib/sample-briefs";
 
+interface RunError {
+  message: string;
+  code?: string;
+  stageId?: string;
+}
+
 const WORKFLOW_STEPS = [
   "Normalizing brief",
   "Extracting strategic tension",
@@ -67,7 +73,7 @@ export default function Home() {
   const [brief, setBrief] = useState("");
   const [run, setRun] = useState<CampaignRunOutput | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<RunError | null>(null);
   const [activeStep, setActiveStep] = useState(0);
 
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
@@ -98,16 +104,18 @@ export default function Home() {
       });
       const data: unknown = await response.json();
       if (!response.ok) {
-        const msg =
-          typeof data === "object" && data !== null && "error" in data
-            ? String((data as Record<string, unknown>).error)
-            : "Campaign run failed.";
-        setError(msg);
+        const d = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {};
+        const runError: RunError = {
+          message: "error" in d ? String(d.error) : "Campaign run failed.",
+        };
+        if ("code" in d) runError.code = String(d.code);
+        if ("stageId" in d) runError.stageId = String(d.stageId);
+        setError(runError);
         return;
       }
       setRun(data as CampaignRunOutput);
     } catch {
-      setError("Network error. Please try again.");
+      setError({ message: "Network error. Please try again." });
     } finally {
       clearInterval(stepTimer);
       setIsRunning(false);
@@ -237,7 +245,19 @@ export default function Home() {
           ) : null}
 
           {error ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              {error.stageId ? (
+                <>
+                  <p className="font-medium">Run failed at stage: {error.stageId}</p>
+                  <p className="mt-1">Reason: {error.message}</p>
+                </>
+              ) : (
+                <p>{error.message}</p>
+              )}
+              {error.code ? (
+                <p className="mt-1.5 text-xs text-red-600">Code: {error.code}</p>
+              ) : null}
+            </div>
           ) : null}
 
           {run ? (
