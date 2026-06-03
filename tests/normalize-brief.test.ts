@@ -81,7 +81,7 @@ describe("LLM error types", () => {
   });
 
   it("LlmSchemaValidationError stores the issues array", () => {
-    const issues = [{ code: "invalid_type", path: ["brandName"] }];
+    const issues = [{ path: ["brandName"], message: "Required" }];
     const err = new LlmSchemaValidationError("Schema mismatch", issues);
     expect(err).toBeInstanceOf(Error);
     expect(err.name).toBe("LlmSchemaValidationError");
@@ -99,7 +99,7 @@ describe("normalizeBriefStage – OpenAI mode with bad response", () => {
     vi.unstubAllGlobals();
   });
 
-  it("throws LlmSchemaValidationError when model output does not match schema", async () => {
+  it("throws LlmSchemaValidationError with safe issues when model output does not match schema", async () => {
     vi.stubEnv("CAMPAIGN_SANDBOX_LLM_PROVIDER", "openai");
     vi.stubEnv("OPENAI_API_KEY", "sk-test-key-for-unit-test");
 
@@ -117,9 +117,14 @@ describe("normalizeBriefStage – OpenAI mode with bad response", () => {
     );
 
     // Stage retries once, then throws LlmSchemaValidationError.
-    await expect(
-      normalizeBriefStage(SAMPLE_INPUT),
-    ).rejects.toBeInstanceOf(LlmSchemaValidationError);
+    await expect(normalizeBriefStage(SAMPLE_INPUT)).rejects.toMatchObject({
+      issues: expect.arrayContaining([
+        expect.objectContaining({
+          path: ["brandName"],
+          message: expect.any(String),
+        }),
+      ]),
+    });
   });
 
   it("throws LlmJsonParseError when model returns non-JSON content", async () => {

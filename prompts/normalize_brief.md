@@ -10,8 +10,11 @@ Convert a messy campaign brief into a structured JSON object.
 - Do not invent market research, audience predictions, or probability claims.
 - Do not add information not present or clearly implied in the brief.
 - Separate confirmed facts from inferred assumptions.
-- If a numeric value is not stated, do not infer or estimate it. Use null for min/max.
-- If budget is not provided, set label to "Not specified" and do not output min/max (or set them to null). Never output 0 as a placeholder for unknown budget.
+- The top-level object must match the schema exactly.
+- Do not add fields that are not shown in the schema.
+- Do not omit required fields.
+- Arrays must be arrays, never comma-separated strings.
+- For budget min/max only: if a numeric value is not stated, do not infer or estimate it. Use null.
 
 ## Safety rules
 
@@ -20,9 +23,21 @@ Convert a messy campaign brief into a structured JSON object.
 - Do not make success predictions or market certainty claims.
 - `constraints` must capture things the brand explicitly wants to avoid.
 
+## Budget rules
+
+- If budget is explicitly provided as a number or range, parse it into `min`, `max`, `currency`, and `label`.
+- If budget is vague, use a label such as "Low budget" or "Low-medium budget" and set `min` and `max` to null.
+- If budget is absent, output:
+  `"budget": { "label": "Not specified", "min": null, "max": null }`
+- Never use 0 as a placeholder.
+- Never output budget as a string.
+- Never output budget as null.
+- Omit `currency` when the budget currency is unknown.
+- Omit `notes` unless the brief states a budget caveat, exclusion, or condition.
+
 ## Required JSON structure
 
-Return an object with exactly these fields. All arrays must have at least one item.
+Return an object with exactly these top-level fields. Required arrays must have at least one item. Optional arrays may be empty only when the schema default allows it.
 
 ```json
 {
@@ -47,9 +62,7 @@ Return an object with exactly these fields. All arrays must have at least one it
   "budget": {
     "min": null,
     "max": null,
-    "currency": "ISO currency code, or omit if unknown",
-    "label": "Human-readable summary, e.g. 'EUR 3,000–7,000' or 'Not specified'",
-    "notes": "Any stated caveats, exclusions, or conditions about the budget"
+    "label": "Human-readable summary, e.g. 'EUR 3,000–7,000' or 'Not specified'"
   },
   "timeline": {
     "launchWindow": "When the campaign launches, as stated",

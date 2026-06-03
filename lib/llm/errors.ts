@@ -24,9 +24,14 @@ export class LlmJsonParseError extends Error {
   }
 }
 
+export type LlmSchemaIssue = {
+  path: Array<string | number>;
+  message: string;
+};
+
 export class LlmSchemaValidationError extends Error {
-  readonly issues: unknown;
-  constructor(message: string, issues: unknown) {
+  readonly issues: LlmSchemaIssue[];
+  constructor(message: string, issues: LlmSchemaIssue[] = []) {
     super(message);
     this.name = "LlmSchemaValidationError";
     this.issues = issues;

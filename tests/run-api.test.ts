@@ -267,13 +267,36 @@ describe("POST /api/campaign/run – run mode", () => {
 describe("POST /api/campaign/run – stage-aware errors", () => {
   it("schema validation error from normalize_brief returns stageId and LLM_SCHEMA_VALIDATION_ERROR", async () => {
     vi.mocked(normalizeBriefStage).mockRejectedValueOnce(
-      new LlmSchemaValidationError("schema mismatch", [{ path: [], message: "bad" }]),
+      new LlmSchemaValidationError("schema mismatch", [{ path: ["budget"], message: "Expected object" }]),
     );
     const response = await POST(makeRequest({ text: VALID_BRIEF }));
     const body = (await response.json()) as Record<string, unknown>;
     expect(response.status).toBe(422);
     expect(body.code).toBe("LLM_SCHEMA_VALIDATION_ERROR");
     expect(body.stageId).toBe("normalize_brief");
+    expect(body.issues).toEqual([
+      { path: ["budget"], message: "Expected object" },
+    ]);
+  });
+
+  it("production schema validation error does not include issues", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    try {
+      vi.mocked(normalizeBriefStage).mockRejectedValueOnce(
+        new LlmSchemaValidationError("schema mismatch", [
+          { path: ["budget"], message: "Expected object" },
+        ]),
+      );
+      const response = await POST(makeRequest({ text: VALID_BRIEF }));
+      const body = (await response.json()) as Record<string, unknown>;
+      expect(response.status).toBe(422);
+      expect(body.code).toBe("LLM_SCHEMA_VALIDATION_ERROR");
+      expect(body.stageId).toBe("normalize_brief");
+      expect(body).not.toHaveProperty("issues");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("provider error from normalize_brief returns stageId and LLM_PROVIDER_ERROR", async () => {

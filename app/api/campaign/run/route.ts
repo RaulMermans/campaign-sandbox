@@ -106,6 +106,17 @@ function logStageErrorForDev(error: CampaignRunStageError, reasonCode: string) {
   console.error("[campaign-run]", safePayload);
 }
 
+function getDevSchemaIssues(error: CampaignRunStageError) {
+  if (process.env.NODE_ENV === "production") return {};
+
+  const cause = error.cause;
+  if (cause instanceof LlmSchemaValidationError) {
+    return { issues: cause.issues };
+  }
+
+  return {};
+}
+
 export async function POST(request: Request): Promise<Response> {
   let body: unknown;
   try {
@@ -280,6 +291,7 @@ export async function POST(request: Request): Promise<Response> {
             error: "LLM output did not match expected schema.",
             code: "LLM_SCHEMA_VALIDATION_ERROR",
             stageId: err.stageId,
+            ...getDevSchemaIssues(err),
           },
           { status: 422 },
         );

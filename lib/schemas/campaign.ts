@@ -46,6 +46,21 @@ export const normalizedCampaignBriefSchema = z
         label: z.string().optional(),
         notes: z.string().optional(),
       })
+      .strict()
+      .superRefine((budget, ctx) => {
+        if (budget.min === 0 && budget.max === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["min"],
+            message: "Budget must not use 0-0 as a placeholder for unknown budget.",
+          });
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["max"],
+            message: "Budget must not use 0-0 as a placeholder for unknown budget.",
+          });
+        }
+      })
       .optional(),
     timeline: z
       .object({

@@ -55,6 +55,19 @@ describe("NormalizedCampaignBrief budget schema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts the canonical unknown budget object", () => {
+    const result = normalizedCampaignBriefSchema.safeParse(
+      makeMinimalBrief({
+        budget: {
+          label: "Not specified",
+          min: null,
+          max: null,
+        },
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
   it("accepts a brief with a valid known budget", () => {
     const result = normalizedCampaignBriefSchema.safeParse(
       makeMinimalBrief({
@@ -75,6 +88,99 @@ describe("NormalizedCampaignBrief budget schema", () => {
       makeMinimalBrief({ budget: { min: -100, max: 500, currency: "USD" } }),
     );
     expect(result.success).toBe(false);
+  });
+
+  it("rejects budget as a string with a schema issue path", () => {
+    const result = normalizedCampaignBriefSchema.safeParse(
+      makeMinimalBrief({ budget: "Not specified" }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ["budget"],
+            message: expect.any(String),
+          }),
+        ]),
+      );
+    }
+  });
+
+  it("rejects budget as null", () => {
+    const result = normalizedCampaignBriefSchema.safeParse(
+      makeMinimalBrief({ budget: null }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects budget 0-0 as an unknown placeholder", () => {
+    const result = normalizedCampaignBriefSchema.safeParse(
+      makeMinimalBrief({
+        budget: {
+          min: 0,
+          max: 0,
+          currency: "USD",
+          label: "USD 0-0",
+        },
+      }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ["budget", "min"],
+            message: expect.stringContaining("0-0"),
+          }),
+          expect.objectContaining({
+            path: ["budget", "max"],
+            message: expect.stringContaining("0-0"),
+          }),
+        ]),
+      );
+    }
+  });
+
+  it("normalizes a Luma Pantry style brief without USD 0-0 budget", () => {
+    const result = normalizedCampaignBriefSchema.safeParse(
+      makeMinimalBrief({
+        brandName: "Luma Pantry",
+        brandDescription: "A neighborhood pantry brand for low-waste kitchen staples.",
+        category: "Food retail launch campaign",
+        campaignNameOptions: ["Pantry Reset"],
+        capsuleDescription: "A launch campaign for refillable staples and seasonal pantry boxes.",
+        products: ["refill staples", "seasonal pantry boxes"],
+        priceRange: { min: 12, max: 48, currency: "USD" },
+        objectives: ["Drive store visits", "Grow email signups"],
+        audience: {
+          ageRange: "25-44",
+          segments: ["home cooks", "low-waste shoppers"],
+          geographies: ["Portland"],
+          sensitivities: ["greenwashing", "premium grocery cliches"],
+        },
+        budget: {
+          label: "Not specified",
+          min: null,
+          max: null,
+        },
+        timeline: {
+          launchWindow: "Spring",
+          teaserWindow: "Two weeks before launch",
+          followUpWindow: "One month after launch",
+          risks: [],
+        },
+        channels: ["Instagram", "email", "in-store signage"],
+        tone: ["practical", "warm"],
+        constraints: ["Avoid sustainability guilt"],
+        openQuestions: ["Budget is not specified."],
+      }),
+    );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(formatBudget(result.data.budget)).toBe("Not specified");
+      expect(formatBudget(result.data.budget)).not.toBe("USD 0-0");
+    }
   });
 
   it("parsed budget is undefined when omitted", () => {

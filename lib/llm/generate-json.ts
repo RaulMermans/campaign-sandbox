@@ -113,9 +113,14 @@ export async function generateJson<T extends ZodTypeAny>(
 
   const result = options.schema.safeParse(parsed);
   if (!result.success) {
+    const issues = result.error.issues.map((issue) => ({
+      path: issue.path,
+      message: issue.message,
+    }));
+
     throw new LlmSchemaValidationError(
-      "OpenAI response did not match the expected schema after parsing.",
-      result.error.issues,
+      "LLM output did not match expected schema.",
+      issues,
     );
   }
 
