@@ -20,6 +20,10 @@ export interface GenerateJsonOptions<T extends ZodTypeAny> {
   model?: string;
   /** Request timeout in milliseconds. Defaults to 120_000ms. */
   timeoutMs?: number;
+  /** JSON Schema name for providers that support structured outputs. */
+  responseSchemaName?: string;
+  /** JSON Schema for providers that support structured outputs. */
+  jsonSchema?: Record<string, unknown>;
 }
 
 export interface GenerateJsonResult<T> {
@@ -29,8 +33,19 @@ export interface GenerateJsonResult<T> {
   outputTokens: number | undefined;
 }
 
+type OpenAIResponseFormat =
+  | { type: "json_object" }
+  | {
+      type: "json_schema";
+      json_schema: {
+        name: string;
+        strict: true;
+        schema: Record<string, unknown>;
+      };
+    };
+
 type OpenAIResponse = {
-  choices: Array<{ message: { content: string } }>;
+  choices: Array<{ message: { content?: string | null; refusal?: string | null } }>;
   usage?: { prompt_tokens: number; completion_tokens: number };
 };
 
@@ -58,6 +73,16 @@ export async function generateJson<T extends ZodTypeAny>(
 
   const model = options.model ?? env.openaiModel;
   const timeoutMs = options.timeoutMs ?? 120_000;
+  const responseFormat: OpenAIResponseFormat = options.jsonSchema
+    ? {
+        type: "json_schema",
+        json_schema: {
+          name: options.responseSchemaName ?? "campaign_stage_output",
+          strict: true,
+          schema: options.jsonSchema,
+        },
+      }
+    : { type: "json_object" };
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -73,7 +98,7 @@ export async function generateJson<T extends ZodTypeAny>(
       body: JSON.stringify({
         model,
         messages: [{ role: "user", content: options.prompt }],
-        response_format: { type: "json_object" },
+        response_format: responseFormat,
       }),
       signal: controller.signal,
     });
@@ -94,7 +119,12 @@ export async function generateJson<T extends ZodTypeAny>(
   }
 
   const json = (await response.json()) as OpenAIResponse;
-  const content = json.choices?.[0]?.message?.content;
+  const message = json.choices?.[0]?.message;
+  if (message?.refusal) {
+    throw new LlmProviderError("OpenAI refused to produce the requested JSON output.");
+  }
+
+  const content = message?.content;
 
   if (!content) {
     throw new LlmProviderError("OpenAI returned an empty response.");

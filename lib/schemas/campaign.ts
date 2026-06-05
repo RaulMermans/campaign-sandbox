@@ -24,11 +24,27 @@ export const normalizedCampaignBriefSchema = z
     products: z.array(z.string().min(1)).min(1),
     priceRange: z
       .object({
-        min: z.number().nonnegative(),
-        max: z.number().nonnegative(),
-        currency: z.string().min(1),
+        min: z.number().nonnegative().nullable().optional(),
+        max: z.number().nonnegative().nullable().optional(),
+        currency: z.string().nullable().optional(),
+        label: z.string().optional(),
+        notes: z.string().nullable().optional(),
       })
-      .strict(),
+      .strict()
+      .superRefine((priceRange, ctx) => {
+        if (priceRange.min === 0 && priceRange.max === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["min"],
+            message: "Price range must not use 0-0 as a placeholder for unknown price.",
+          });
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["max"],
+            message: "Price range must not use 0-0 as a placeholder for unknown price.",
+          });
+        }
+      }),
     objectives: z.array(z.string().min(1)).min(1),
     audience: z
       .object({
@@ -42,9 +58,9 @@ export const normalizedCampaignBriefSchema = z
       .object({
         min: z.number().nonnegative().nullable().optional(),
         max: z.number().nonnegative().nullable().optional(),
-        currency: z.string().optional(),
+        currency: z.string().nullable().optional(),
         label: z.string().optional(),
-        notes: z.string().optional(),
+        notes: z.string().nullable().optional(),
       })
       .strict()
       .superRefine((budget, ctx) => {

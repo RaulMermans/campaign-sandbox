@@ -1,18 +1,36 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { NormalizedCampaignBrief, StrategicTension } from "@/lib/schemas/campaign";
 
-export function formatBudget(budget: NormalizedCampaignBrief["budget"]): string {
-  if (!budget) return "Not specified";
-  if (budget.label && /^([A-Z]{3}\s*)?0\s*[-–]\s*0$/i.test(budget.label.trim())) {
+const ZERO_RANGE_PATTERN = /^([A-Z]{3}\s*)?0\s*[-–]\s*0$/i;
+
+export function formatRange(input?: {
+  min?: number | null;
+  max?: number | null;
+  currency?: string | null;
+  label?: string;
+}) {
+  if (!input) return "Not specified";
+
+  if (input.label && ZERO_RANGE_PATTERN.test(input.label.trim())) {
     return "Not specified";
   }
-  if (budget.label) return budget.label;
-  const { min, max, currency } = budget;
-  if ((min == null || min === 0) && (max == null || max === 0)) return "Not specified";
-  if (min != null && max != null && currency) {
-    return `${currency} ${min.toLocaleString()}–${max.toLocaleString()}`;
+
+  const min = input.min ?? null;
+  const max = input.max ?? null;
+
+  if (min === 0 && max === 0) return "Not specified";
+  if (min === null && max === null) return input.label ?? "Not specified";
+
+  if (typeof min === "number" && typeof max === "number") {
+    const prefix = input.currency ? `${input.currency} ` : "";
+    return input.label ?? `${prefix}${min.toLocaleString()}–${max.toLocaleString()}`;
   }
-  return "Not specified";
+
+  return input.label ?? "Not specified";
+}
+
+export function formatBudget(budget: NormalizedCampaignBrief["budget"]): string {
+  return formatRange(budget);
 }
 
 export function NormalizedBriefPanel({

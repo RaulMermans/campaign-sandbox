@@ -2,12 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { normalizeBriefStage } from "@/lib/workflow/stages/normalize-brief";
 import { normalizedCampaignBriefSchema } from "@/lib/schemas/campaign";
 import { traceEventSchema } from "@/lib/schemas/trace";
+import { normalizedCampaignBriefJsonSchema } from "@/lib/llm/json-schemas/normalized-campaign-brief";
 import {
   LlmJsonParseError,
   LlmProviderError,
   LlmSchemaValidationError,
 } from "@/lib/llm/errors";
 import { NODO_SAMPLE_BRIEF } from "@/lib/sample-briefs";
+import { normalizedBrief as MOCK_NORMALIZED_BRIEF } from "@/lib/workflow/mock-campaign-run";
 
 // Runs without any env vars set — CAMPAIGN_SANDBOX_LLM_PROVIDER defaults to "mock".
 
@@ -97,6 +99,40 @@ describe("normalizeBriefStage – OpenAI mode with bad response", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+  });
+
+  it("passes the normalized campaign brief JSON Schema to generateJson", async () => {
+    vi.stubEnv("CAMPAIGN_SANDBOX_LLM_PROVIDER", "openai");
+    vi.stubEnv("OPENAI_API_KEY", "sk-test-key-for-unit-test");
+    const normalizedBrief = {
+      ...MOCK_NORMALIZED_BRIEF,
+      priceRange: {
+        ...MOCK_NORMALIZED_BRIEF.priceRange,
+        label: "EUR 80–220",
+      },
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: JSON.stringify(normalizedBrief) } }],
+        usage: { prompt_tokens: 20, completion_tokens: 15 },
+      }),
+      text: async () => "{}",
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await normalizeBriefStage(SAMPLE_INPUT);
+
+    expect(result.normalizedBrief.priceRange).toEqual(normalizedBrief.priceRange);
+    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(requestBody.response_format).toEqual({
+      type: "json_schema",
+      json_schema: {
+        name: "normalized_campaign_brief",
+        strict: true,
+        schema: normalizedCampaignBriefJsonSchema,
+      },
+    });
   });
 
   it("throws LlmSchemaValidationError with safe issues when model output does not match schema", async () => {

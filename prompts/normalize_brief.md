@@ -14,7 +14,9 @@ Convert a messy campaign brief into a structured JSON object.
 - Do not add fields that are not shown in the schema.
 - Do not omit required fields.
 - Arrays must be arrays, never comma-separated strings.
-- For budget min/max only: if a numeric value is not stated, do not infer or estimate it. Use null.
+- For price and budget min/max: if a numeric value is not stated, do not infer or estimate it. Use null.
+- For required string fields where information is absent, use "Not specified" rather than an empty string.
+- For required arrays where information is absent, include one item such as "Not specified" only if the schema requires at least one item.
 
 ## Safety rules
 
@@ -28,15 +30,28 @@ Convert a messy campaign brief into a structured JSON object.
 - If budget is explicitly provided as a number or range, parse it into `min`, `max`, `currency`, and `label`.
 - If budget is vague, output `min` and `max` as null and use a descriptive `label`, e.g. "Low budget" or "Low-medium budget".
 - If budget is absent, output:
-  `"budget": { "min": null, "max": null, "label": "Not specified" }`
+  `"budget": { "min": null, "max": null, "currency": null, "label": "Not specified", "notes": null }`
 - For a known explicit budget, output a readable object such as:
-  `"budget": { "currency": "EUR", "min": 3000, "max": 7000, "label": "EUR 3,000–7,000" }`
+  `"budget": { "currency": "EUR", "min": 3000, "max": 7000, "label": "EUR 3,000–7,000", "notes": null }`
 - Never output 0 as a placeholder for unknown budget.
 - Never output budget as a string.
 - Never output budget as null.
 - Never output a zero-to-zero budget range or any equivalent.
-- Omit `currency` when the budget currency is unknown.
-- Omit `notes` unless the brief states a budget caveat, exclusion, or condition.
+- Use `currency: null` when the budget currency is unknown.
+- Use `notes: null` unless the brief states a budget caveat, exclusion, or condition.
+
+## Price range rules
+
+- If product price is explicitly provided as a number or range, parse `min`, `max`, `currency`, and `label`.
+- If product price is vague, use `min` and `max` as null and include a descriptive `label`.
+- If product price is absent, output:
+  `"priceRange": { "min": null, "max": null, "currency": null, "label": "Not specified", "notes": null }`
+- Never use 0 as a placeholder.
+- Never output `priceRange` as a string.
+- Never output `priceRange` as null.
+- Never invent a price.
+- Use `currency: null` when unknown.
+- Use `notes: null` unless the brief states a price caveat, exclusion, or condition.
 
 ## Required JSON structure
 
@@ -51,9 +66,11 @@ Return an object with exactly these top-level fields. Required arrays must have 
   "capsuleDescription": "What the capsule or campaign is about in one or two sentences",
   "products": ["product type 1", "product type 2"],
   "priceRange": {
-    "min": 25,
-    "max": 75,
-    "currency": "ISO currency code, e.g. EUR, GBP, USD"
+    "min": null,
+    "max": null,
+    "currency": null,
+    "label": "Human-readable summary, e.g. 'EUR 80–220' or 'Not specified'",
+    "notes": null
   },
   "objectives": ["Stated objective 1", "Stated objective 2"],
   "audience": {
@@ -65,7 +82,9 @@ Return an object with exactly these top-level fields. Required arrays must have 
   "budget": {
     "min": null,
     "max": null,
-    "label": "Human-readable summary, e.g. 'EUR 3,000–7,000' or 'Not specified'"
+    "currency": null,
+    "label": "Human-readable summary, e.g. 'EUR 3,000–7,000' or 'Not specified'",
+    "notes": null
   },
   "timeline": {
     "launchWindow": "When the campaign launches, as stated",

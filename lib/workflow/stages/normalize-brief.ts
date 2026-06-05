@@ -11,6 +11,7 @@ import { createTraceEvent } from "@/lib/traces/trace-events";
 import { loadPrompt } from "@/lib/prompts/load-prompt";
 import { env } from "@/lib/env";
 import { generateJson } from "@/lib/llm/generate-json";
+import { normalizedCampaignBriefJsonSchema } from "@/lib/llm/json-schemas/normalized-campaign-brief";
 import { LlmJsonParseError, LlmSchemaValidationError } from "@/lib/llm/errors";
 import { normalizedBrief as MOCK_NORMALIZED_BRIEF } from "@/lib/workflow/mock-campaign-run";
 
@@ -67,6 +68,8 @@ async function normalizeWithOpenAI(
         schema: normalizedCampaignBriefSchema,
         model: env.openaiModel,
         timeoutMs: OPENAI_TIMEOUT_MS,
+        responseSchemaName: "normalized_campaign_brief",
+        jsonSchema: normalizedCampaignBriefJsonSchema,
       });
 
       const durationMs = Date.now() - startMs;

@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { normalizedCampaignBriefSchema } from "@/lib/schemas/campaign";
-import { formatBudget } from "@/components/brief/normalized-brief-panel";
+import { formatBudget, formatRange } from "@/components/brief/normalized-brief-panel";
 
 // The minimal valid normalized brief (without budget) for testing
 function makeMinimalBrief(overrides: Record<string, unknown> = {}) {
@@ -36,14 +36,72 @@ function makeMinimalBrief(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe("Normalize prompt budget guidance", () => {
-  it("does not include forbidden unknown-budget placeholder examples", () => {
+describe("Normalize prompt budget and price guidance", () => {
+  it("does not include forbidden unknown price or budget placeholder examples", () => {
     const prompt = readFileSync(`${process.cwd()}/prompts/normalize_brief.md`, "utf8");
 
     expect(prompt).not.toContain('"min": 0');
     expect(prompt).not.toContain('"max": 0');
     expect(prompt).not.toContain("USD 0-0");
+    expect(prompt).not.toContain("EUR 0-0");
     expect(prompt).not.toContain("0-0");
+  });
+});
+
+describe("NormalizedCampaignBrief priceRange schema", () => {
+  it("accepts the canonical unknown price range object", () => {
+    const result = normalizedCampaignBriefSchema.safeParse(
+      makeMinimalBrief({
+        priceRange: {
+          min: null,
+          max: null,
+          label: "Not specified",
+        },
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a known price range with currency and label", () => {
+    const result = normalizedCampaignBriefSchema.safeParse(
+      makeMinimalBrief({
+        priceRange: {
+          min: 80,
+          max: 220,
+          currency: "EUR",
+          label: "EUR 80–220",
+        },
+      }),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects price range 0-0 as an unknown placeholder", () => {
+    const result = normalizedCampaignBriefSchema.safeParse(
+      makeMinimalBrief({
+        priceRange: {
+          min: 0,
+          max: 0,
+          currency: "USD",
+          label: "USD 0-0",
+        },
+      }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ["priceRange", "min"],
+            message: expect.stringContaining("0-0"),
+          }),
+          expect.objectContaining({
+            path: ["priceRange", "max"],
+            message: expect.stringContaining("0-0"),
+          }),
+        ]),
+      );
+    }
   });
 });
 
@@ -234,5 +292,19 @@ describe("Budget display logic", () => {
 
   it("bad zero range label is treated as unknown", () => {
     expect(formatBudget({ label: "USD 0-0" })).toBe("Not specified");
+  });
+});
+
+describe("Range display logic", () => {
+  it("never renders 0-0 placeholders", () => {
+    expect(formatRange({ min: 0, max: 0, currency: "USD" })).toBe("Not specified");
+    expect(formatRange({ label: "USD 0-0" })).toBe("Not specified");
+    expect(formatRange({ label: "EUR 0-0" })).toBe("Not specified");
+    expect(formatRange({ label: "0-0" })).toBe("Not specified");
+  });
+
+  it("renders unknown and known price ranges", () => {
+    expect(formatRange({ min: null, max: null, label: "Not specified" })).toBe("Not specified");
+    expect(formatRange({ min: 80, max: 220, currency: "EUR" })).toBe("EUR 80–220");
   });
 });
