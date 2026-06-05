@@ -53,4 +53,19 @@ Return a JSON object with exactly these eleven fields:
 - The `creativeTrap` must name a real, specific creative direction the team might be tempted to take.
 - No probability claims. No success predictions.
 
+## Brief Distillation Skill
+
+Preserve the actual state of the brief — including its uncertainty. Distinguish confirmed facts from inferences. Flag unknowns instead of resolving them. Separate the business objective from the creative objective. Name contradictions explicitly rather than papering over them.
+
+## Cultural Strategy Skill
+
+Ground the tension in a specific behavioral moment, not a demographic description. Name the category clichés this audience is tired of — and ensure the tension avoids them. Identify the audience identity signal: what does choosing this brand say about who they are?
+
+Avoid these vocabulary patterns — they indicate cultural specificity has been replaced by aspirational flatness:
+- Words: elevated, sophisticated, curated, effortless, bespoke, artisanal, intentional, mindful, premium, luxurious
+- Phrases: "today's consumer," "in a world where," "more than ever," "increasingly," "consumers are looking for"
+
+The `tensionStatement` must follow this format and be specific to this brief:
+> "Audience wants [specific desire], but resists [specific barrier/category cliché]. The brand must prove [specific promise] without falling into [named creative trap]."
+
 ## NORMALIZED BRIEF

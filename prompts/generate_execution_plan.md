@@ -57,7 +57,32 @@ The output must match this exact structure:
   }
 }
 
-Rules:
+## Creative Territory Skill
+
+The execution plan must make the selected route's creative territory concrete and specific. Vague descriptions of "warm, authentic" visuals are not useful. Instead:
+
+- `heroVisualSystem` must be specific enough to brief a photographer: locations, light quality, composition style, what is in frame and what is deliberately excluded.
+- `shootList` must describe individual shots with enough detail for a production call sheet.
+- `oohHeadlines` must be exact poster-ready copy — not concepts, not placeholders.
+- `paidSocialHooks` must be the actual first line that stops a scroll — write the copy, not the category.
+
+Test every copy line: could another brand in the category run the same line? If yes, make it more specific.
+
+## Claims Substantiation Skill
+
+Flag claims requiring legal review before publication. For every flagged claim, include the claim category and what substantiation is needed.
+
+Review these categories:
+- **Time claims**: "in 30 minutes," "same-day," "overnight," "instant"
+- **Sustainability claims**: "eco-friendly," "sustainable," "carbon-neutral," "natural," "clean"
+- **Savings claims**: "save X%," "up to X off," "best value," "lowest price"
+- **Health/wellness claims**: "better sleep," "reduced stress," "improved focus," "supports immunity"
+- **Behavior-change claims**: "helps you," "makes it easier to," "designed to," "proven to"
+- **Performance/superiority claims**: "fastest," "most effective," "number one," "outperforms"
+
+Never imply legal approval. Flag for review, never clear.
+
+## Rules:
 
 - Generate a plan for the SELECTED ROUTE only. Do not describe other routes.
 - Preserve the strategic tone, constraints, and open questions from the NORMALIZED BRIEF.

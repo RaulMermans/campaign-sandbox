@@ -4,6 +4,57 @@ Campaign Sandbox uses a hybrid workflow-agent architecture. The product is a det
 
 Deterministic code owns orchestration, schema validation, scoring weights, trace logging, retries, persistence boundaries, artifact export, and safety rules. LLM stages are reserved for tasks where language judgment matters: brief normalization, strategic tension extraction, campaign route generation, synthetic audience simulation, pre-mortem critique, and final plan synthesis.
 
+## High-level flow
+
+```
+Deterministic intake/upload
+→ extracted/editable brief (server-side text extraction, no file storage)
+→ bounded LLM workflow with skill-injected prompts
+→ deterministic schema validation
+→ human route selection (required)
+→ bounded execution plan generation
+→ deterministic export (Markdown / HTML)
+```
+
+## Intake Mode vs Results Workspace Mode
+
+The UI operates in two distinct modes:
+
+**Intake Mode** — shown before a run starts. Editorial two-column layout with a hero panel and brief intake card. Supports paste, file upload (PDF/PPTX/TXT), and sample brief. File extraction is server-side: text is extracted, previewed, and editable before any LLM stage runs.
+
+**Results Workspace Mode** — shown after a run starts or completes. Hero panel collapses into a compact sticky top bar. Full-width results workspace with sticky section nav, collapsible sections, and a brief drawer for re-editing and re-running.
+
+## Skill layer
+
+Skills are reusable prompt modules injected into bounded LLM workflow stages. They are **not autonomous agents** — they have no tools, no memory, and no ability to act. They are strings that augment the bounded prompt sent to the model.
+
+Skill files live in `lib/skills/*.md`. Each is a markdown file with frontmatter (name, description, stages). The TypeScript loader in `lib/skills/load-skill.ts` reads them synchronously at module init. Skill content is injected into the relevant prompt `.md` files.
+
+| Skill | Stages |
+|---|---|
+| `brief-distillation` | `normalize_brief`, `extract_strategic_tension` |
+| `cultural-strategy` | `extract_strategic_tension`, `generate_campaign_routes` |
+| `creative-territory` | `generate_campaign_routes`, `generate_execution_plan` |
+| `persona-decision` | `simulate_reactions` |
+| `premortem-critic` | `premortem_review` |
+| `claims-substantiation` | `generate_execution_plan` |
+| `report-editor` | export (reference only) |
+
+## File brief extraction
+
+Supported formats: PDF, PPTX, TXT.
+
+Rules:
+- Max file size: 15 MB.
+- Max extracted text: 50,000 characters (truncation warning if exceeded).
+- Files are never stored on disk or in memory beyond the request.
+- Extracted text is never sent to an LLM until the user explicitly clicks Run simulation.
+- OCR is not supported. Image-only PDFs return a warning.
+- PPTX speaker notes are not extracted.
+- Unsupported types (docx, etc.) return a 400.
+- Empty extraction returns a 422.
+- No stack traces in error responses.
+
 ## Current stage status
 
 | Stage | Status | Provider |
@@ -37,6 +88,7 @@ Real LLM code runs exclusively server-side:
 - `app/api/campaign/premortem/route.ts` — pre-mortem review API endpoint.
 - `app/api/campaign/comparison/route.ts` — comparison API endpoint. Deterministic. Works without `OPENAI_API_KEY`.
 - `app/api/campaign/execution-plan/route.ts` — execution plan API endpoint. Called after explicit human route selection. Accepts a completed run plus `selectedRouteId`. Generates a plan for the selected route only. Never generates a plan without explicit user selection.
+- `app/api/campaign/extract-brief/route.ts` — file extraction API. Accepts multipart/form-data with a PDF, PPTX, or TXT file. Returns extracted text and warnings. Does not store files. Does not call the LLM. Never called automatically — only when the user uploads a file.
 
 Client components call `/api/campaign/run`, not stage functions directly. No API keys or env vars are exposed to the browser.
 

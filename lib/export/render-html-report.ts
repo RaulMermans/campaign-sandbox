@@ -52,14 +52,38 @@ const CSS = `
     background: #fff;
     max-width: 860px;
     margin: 0 auto;
-    padding: 40px 24px 80px;
+    padding: 0 24px 80px;
   }
-  h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
-  h2 { font-size: 1.2rem; font-weight: 700; margin: 2.5rem 0 0.75rem; border-bottom: 1px solid #e5e5e5; padding-bottom: 0.4rem; }
+  .report-cover {
+    padding: 48px 0 40px;
+    border-bottom: 2px solid #111;
+    margin-bottom: 2.5rem;
+  }
+  .report-cover .brand-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #888;
+    margin-bottom: 0.5rem;
+  }
+  .report-cover h1 { font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem; line-height: 1.2; }
+  .report-cover .meta { font-size: 0.8rem; color: #888; margin-top: 1rem; }
+  .report-cover .selected-route-callout {
+    display: inline-block;
+    background: #111;
+    color: #fff;
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 1rem;
+  }
+  h2 { font-size: 1.15rem; font-weight: 700; margin: 2.5rem 0 0.75rem; border-bottom: 1px solid #e5e5e5; padding-bottom: 0.4rem; }
   h3 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
   p { margin: 0.4rem 0; }
   ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; padding: 0; }
-  li { margin-bottom: 0.2rem; }
+  li { margin-bottom: 0.25rem; }
   .meta { font-size: 0.8rem; color: #888; margin-bottom: 1rem; }
   .caveat-box {
     background: #fffbeb;
@@ -71,32 +95,41 @@ const CSS = `
     margin: 1rem 0;
   }
   .section { margin-bottom: 2rem; }
-  .subsection { margin-bottom: 1.25rem; }
-  .label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #888; display: block; margin-top: 0.5rem; }
+  .subsection { margin-bottom: 1.5rem; }
+  .label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #888; display: block; margin-top: 0.75rem; }
   .score { display: inline-block; background: #f5f5f5; border-radius: 4px; padding: 1px 8px; font-size: 0.9rem; font-weight: 600; margin-left: 8px; }
   .role-badge { display: inline-block; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; border-radius: 4px; padding: 2px 8px; margin-right: 4px; }
   .role-safest { background: #dcfce7; color: #166534; }
   .role-boldest { background: #f3e8ff; color: #6b21a8; }
   .role-conversion { background: #dbeafe; color: #1e40af; }
   .ranking-label { font-size: 0.75rem; color: #888; margin-left: 4px; }
-  .killer-line { font-size: 1rem; font-weight: 600; color: #111; margin: 0.5rem 0; }
-  .tension-statement { background: #f9fafb; border-left: 3px solid #d1d5db; padding: 10px 16px; margin: 0.75rem 0; font-size: 0.95rem; }
-  .ooh-line { display: block; background: #111; color: #fff; padding: 10px 16px; border-radius: 6px; margin-bottom: 8px; font-weight: 600; }
+  .killer-line { font-size: 1.05rem; font-weight: 600; color: #111; margin: 0.5rem 0; }
+  .tension-statement { background: #f9fafb; border-left: 3px solid #d1d5db; padding: 12px 16px; margin: 0.75rem 0; font-size: 0.95rem; }
+  .ooh-line { display: block; background: #111; color: #fff; padding: 12px 18px; border-radius: 6px; margin-bottom: 10px; font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; }
   .social-hook { display: block; border: 1px solid #e5e5e5; padding: 10px 16px; border-radius: 6px; margin-bottom: 8px; font-style: italic; }
-  .landing-block { border: 1px solid #e5e5e5; border-radius: 6px; padding: 14px; margin-bottom: 10px; }
-  .landing-block .block-name { font-weight: 600; }
-  .landing-block .block-purpose { font-size: 0.8rem; color: #888; }
-  .risk-card { border: 1px solid #fde68a; background: #fffbeb; border-radius: 6px; padding: 14px; margin-bottom: 10px; }
+  .landing-block { border: 1px solid #e5e5e5; border-radius: 6px; padding: 16px; margin-bottom: 10px; }
+  .landing-block .block-name { font-weight: 600; font-size: 0.95rem; }
+  .landing-block .block-purpose { font-size: 0.8rem; color: #888; display: block; margin-bottom: 4px; }
+  .risk-card { border: 1px solid #fde68a; background: #fffbeb; border-radius: 6px; padding: 14px; margin-bottom: 10px; break-inside: avoid; }
   .risk-card .risk-headline { font-weight: 600; margin-bottom: 6px; }
-  .sim-card { border: 1px solid #e5e5e5; border-radius: 6px; padding: 14px; margin-bottom: 10px; }
-  .sim-card .quoted { font-style: italic; margin: 6px 0; }
+  .sim-card { border: 1px solid #e5e5e5; border-radius: 6px; padding: 14px; margin-bottom: 10px; break-inside: avoid; }
+  .sim-card .quoted { font-style: italic; margin: 6px 0; color: #444; }
   .sim-scores { display: flex; gap: 12px; font-size: 0.8rem; color: #888; margin: 4px 0 8px; }
   .legal-note { background: #f5f5f5; border-radius: 6px; padding: 12px 16px; font-size: 0.8rem; }
+  .selected-callout { border: 2px solid #111; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .selected-callout .selected-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 4px; }
   .footer-caveat { border-top: 1px solid #e5e5e5; margin-top: 3rem; padding-top: 1rem; font-size: 0.75rem; color: #999; }
+  .summary-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 0.5rem 0 1rem; }
+  .summary-table td { padding: 6px 0; vertical-align: top; }
+  .summary-table td:first-child { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #888; width: 140px; padding-right: 12px; }
   @media print {
-    body { padding: 20px; max-width: 100%; }
-    h2 { page-break-before: auto; }
-    .caveat-box, .risk-card { break-inside: avoid; }
+    body { padding: 0 20px; max-width: 100%; font-size: 13px; }
+    .report-cover { padding: 32px 0 28px; page-break-after: always; }
+    h2 { page-break-before: always; margin-top: 0; }
+    h2:first-of-type { page-break-before: auto; }
+    .section { page-break-inside: avoid; }
+    .risk-card, .sim-card, .landing-block { break-inside: avoid; }
+    .caveat-box { break-inside: avoid; }
   }
 `;
 
@@ -114,22 +147,28 @@ export function renderHtmlReport(report: CampaignReport): string {
 </head>
 <body>`);
 
-  // Header
-  parts.push(`<header>
+  // Cover
+  parts.push(`<header class="report-cover">
+  <p class="brand-label">${esc(report.brandName)} · Campaign Sandbox Report</p>
   <h1>${esc(report.title)}</h1>
-  <p class="meta">Generated: ${esc(new Date(report.generatedAt).toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" }))}${report.runId ? ` · Run ID: ${esc(report.runId)}` : ""}</p>
+  ${report.selectedRouteName ? `<div class="selected-route-callout">Selected route: ${esc(report.selectedRouteName)}</div>` : ""}
+  <p class="meta">Generated: ${esc(new Date(report.generatedAt).toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" }))}${report.runId ? ` · Run ${esc(report.runId)}` : ""}</p>
   <div class="caveat-box">${esc(report.caveat)}</div>
 </header>`);
 
-  // Executive Summary
-  parts.push(section("Executive Summary", `
-    ${kv("Brand", report.brandName)}
-    ${kv("Campaign", report.capsuleDescription)}
-    ${kv("Recommended route", report.recommendedRouteName)}
-    ${report.selectedRouteName ? kv("Selected route", report.selectedRouteName) : ""}
-    ${kv("Budget", report.budgetLabel)}
-    ${kv("Launch", report.timelineLabel)}
-  `));
+  // Executive Summary — table
+  const summaryRows = [
+    ["Brand", report.brandName],
+    ["Campaign", report.capsuleDescription],
+    ["Recommended route", report.recommendedRouteName],
+    ...(report.selectedRouteName ? [["Selected route", report.selectedRouteName]] : []),
+    ["Budget", report.budgetLabel],
+    ["Launch", report.timelineLabel],
+  ];
+  const summaryTable = `<table class="summary-table"><tbody>
+    ${summaryRows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("\n    ")}
+  </tbody></table>`;
+  parts.push(section("Executive Summary", summaryTable));
 
   // Brief
   parts.push(section("Brief", `
@@ -168,19 +207,24 @@ export function renderHtmlReport(report: CampaignReport): string {
     `));
   }
 
-  // Selected Route
-  if (report.selectedRouteId && report.selectedRouteId !== report.recommendedRouteId) {
+  // Selected Route — prominent callout
+  if (report.selectedRouteId) {
     const selectedRoute = report.routes.find((r) => r.id === report.selectedRouteId);
     if (selectedRoute) {
+      const isSameAsRecommended = report.selectedRouteId === report.recommendedRouteId;
       parts.push(section("Selected Route", `
-        <h3>${esc(selectedRoute.name)} ${scoreBar(selectedRoute.score)}</h3>
-        <span class="role-badge role-${esc(selectedRoute.strategicRole)}">${esc(selectedRoute.strategicRole)}</span>
-        <p class="killer-line">&ldquo;${esc(selectedRoute.killerLine)}&rdquo;</p>
-        ${kv("Enemy", selectedRoute.enemy)}
+        <div class="selected-callout">
+          <p class="selected-label">Human selection</p>
+          <h3 style="margin:0 0 4px;">${esc(selectedRoute.name)} ${scoreBar(selectedRoute.score)}</h3>
+          <p style="margin:0 0 8px;">
+            <span class="role-badge role-${esc(selectedRoute.strategicRole)}">${esc(selectedRoute.strategicRole)}</span>
+            ${isSameAsRecommended ? `<span class="ranking-label">same as recommended</span>` : ""}
+          </p>
+          <p class="killer-line">&ldquo;${esc(selectedRoute.killerLine)}&rdquo;</p>
+          ${kv("Enemy", selectedRoute.enemy)}
+        </div>
       `));
     }
-  } else if (report.selectedRouteId) {
-    parts.push(section("Selected Route", `<p>Human selection confirmed: <strong>${esc(report.selectedRouteName ?? report.selectedRouteId)}</strong> (same as recommended route).</p>`));
   }
 
   // Route Comparison

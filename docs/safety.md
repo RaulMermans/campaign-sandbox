@@ -2,6 +2,14 @@
 
 Campaign Sandbox is decision support, not real market research.
 
+## Non-negotiable rules (updated for v1 sprint)
+
+- No file storage: uploaded briefs are processed in-memory and discarded after extraction.
+- No OCR: image-only PDFs return a warning, not silent empty text.
+- No LLM calls before user consent: extracted text is shown and editable before any run starts.
+- No autonomous agents: the skill layer is prompt injection only — no tools, no memory, no multi-step agent loops.
+- Skill content appears in prompts as bounded instructions, not as model instructions to act independently.
+
 ## Non-negotiable rules
 
 - Never present synthetic persona reactions as real audience research.

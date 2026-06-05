@@ -34,15 +34,22 @@ export function renderMarkdownReport(report: CampaignReport): string {
   sections.push(`> **Planning document caveat:** ${report.caveat}`);
   sections.push("");
 
-  // Executive Summary
+  // Executive Summary — table format
   sections.push(heading(2, "Executive Summary"));
-  sections.push(`**Brand:** ${report.brandName}`);
-  sections.push(`**Campaign:** ${report.capsuleDescription}`);
-  sections.push(`**Recommended route:** ${report.recommendedRouteName}`);
+  const summaryRows = [
+    ["Brand", report.brandName],
+    ["Campaign", report.capsuleDescription],
+    ["Recommended route", report.recommendedRouteName],
+  ];
   if (report.selectedRouteName) {
-    sections.push(`**Selected route:** ${report.selectedRouteName}`);
+    summaryRows.push(["Selected route", report.selectedRouteName]);
   }
-  sections.push(`**Budget:** ${report.budgetLabel} · **Launch:** ${report.timelineLabel}`);
+  summaryRows.push(["Budget", report.budgetLabel], ["Launch", report.timelineLabel]);
+  sections.push("| Field | Value |");
+  sections.push("| --- | --- |");
+  for (const [field, value] of summaryRows) {
+    sections.push(`| ${field} | ${value} |`);
+  }
   sections.push("");
 
   divider();
@@ -203,27 +210,31 @@ export function renderMarkdownReport(report: CampaignReport): string {
 
     sections.push(heading(3, "OOH Headlines"));
     for (const h of plan.oohHeadlines) {
-      sections.push(`> ${h}`);
+      sections.push(`> **${h}**`);
+      sections.push(">");
     }
     sections.push("");
 
     sections.push(heading(3, "Paid Social Hooks"));
     for (const hook of plan.paidSocialHooks) {
-      sections.push(`> "${hook}"`);
+      sections.push(`> _"${hook}"_`);
+      sections.push(">");
     }
     sections.push("");
 
     sections.push(heading(3, "Landing Page Structure"));
     for (const block of plan.landingPageBlocks) {
-      sections.push(`**${block.block}** — ${block.purpose}`);
+      sections.push(`**${block.block}**`);
+      sections.push(`_${block.purpose}_`);
       sections.push(block.content);
       sections.push("");
     }
 
     sections.push(heading(3, "Launch Phases"));
     for (const phase of plan.launchPhases) {
-      sections.push(`**${phase.phase}** (${phase.timing})`);
-      sections.push(`_${phase.objective}_`);
+      sections.push(`**${phase.phase}** · _${phase.timing}_`);
+      sections.push(`${phase.objective}`);
+      sections.push("");
       sections.push("Key actions:");
       sections.push(bullets(phase.keyActions));
       sections.push("Deliverables:");

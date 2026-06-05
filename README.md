@@ -2,9 +2,16 @@
 
 Campaign Sandbox is an AI-assisted creative strategy workspace for campaign simulation and decision support.
 
-It takes a messy campaign brief, normalizes it into a strategic object, generates campaign routes, simulates synthetic audience reactions, scores tradeoffs, runs a pre-mortem, compares routes, and turns a human-selected route into an execution-ready plan.
+It takes a messy campaign brief (pasted, or imported from a PDF/PPTX/TXT file), normalizes it into a strategic object, generates campaign routes, simulates synthetic audience reactions, scores tradeoffs, runs a pre-mortem, compares routes, and turns a human-selected route into an execution-ready plan.
 
 This is not an AI campaign generator. It is a workflow for creative teams making better campaign decisions.
+
+## What's new in v1
+
+- **Intake Mode / Results Workspace Mode** — the UI now switches layouts. Before a run: editorial two-column intake with paste/upload support. After a run: compact top bar + full-width results workspace with sticky section nav and a brief drawer for re-running.
+- **File brief import** — upload a PDF, PPTX, or TXT file. Text is extracted server-side, shown in an editable preview, and only sent to the LLM when you click Run. No file storage, no OCR, no auto-run.
+- **Skill layer v1** — seven prompt-injection skills (`brief-distillation`, `cultural-strategy`, `creative-territory`, `persona-decision`, `premortem-critic`, `claims-substantiation`, `report-editor`) improve output quality without adding autonomous agents.
+- **Export polish** — Markdown uses a summary table and formatted blockquotes. HTML has a report cover, print page breaks, and a selected route callout.
 
 ## Stack
 
@@ -144,15 +151,21 @@ All scores and comparison dimensions are bounded qualitative strategic estimates
 - `app/api/campaign/scores/` — Deterministic scoring API route (no LLM).
 - `app/api/campaign/premortem/` — Pre-mortem risk review API route.
 - `app/api/campaign/comparison/` — Deterministic comparison API route (no LLM).
-- `components/` — UI, brief, route, simulation, and trace components.
+- `app/api/campaign/extract-brief/` — File extraction API (PDF/PPTX/TXT). No file storage, no LLM.
+- `components/` — UI, brief, route, simulation, trace, intake, and layout components.
+- `components/intake/` — Intake Mode components: brief intake panel, file upload panel, extracted brief preview.
+- `components/layout/` — App shell (Intake/Results mode switcher), results workspace, brief drawer.
 - `lib/env.ts` — Server-side environment validation (never import in client components).
+- `lib/extract/` — Server-side brief extraction utilities (txt, pdf, pptx, validation).
 - `lib/llm/` — LLM provider adapter (server-side only).
 - `lib/schemas/` — Zod contracts.
+- `lib/skills/` — Prompt-injection skill modules (`.md` files + TypeScript loader). Not autonomous agents.
 - `lib/workflow/` — Workflow boundary, mock run, validators, and stage functions.
 - `lib/workflow/stages/` — Bounded stage functions (server-side only).
 - `lib/scoring/` — Deterministic route scoring and comparison helpers.
 - `lib/traces/` — Trace event factory.
-- `prompts/` — Bounded LLM prompt files.
+- `lib/export/` — Deterministic export renderers (Markdown, HTML).
+- `prompts/` — Bounded LLM prompt files (include injected skill sections).
 - `docs/` — Architecture, prompts, safety, observability, and deployment docs.
 
 ## Local Troubleshooting
