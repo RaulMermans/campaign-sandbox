@@ -63,6 +63,15 @@ export const strategicTension: StrategicTension = {
   creativeOpportunity:
     "Frame the product as a uniform for unfinished days: clothes that understand in-between time without dramatizing it.",
   avoid: ["travel campaign cliches", "scarcity hype", "startup productivity language", "performative Gen Z slang"],
+  audienceDesire: "Clothes that make mobile, creative work feel intentional and considered — not loud or performative",
+  audienceResistance:
+    "Any campaign language that mirrors startup hustle culture, obvious travel codes, or influencer aesthetics they already filter out",
+  brandProofChallenge:
+    "NODO must show that premium daily wear belongs in transitional moments without borrowing the visual codes of travel or wellness brands",
+  creativeTrap:
+    "Over-aestheticising the in-between moment into a slow-living brand — soft light, linen, candles — that erases the real friction of creative work",
+  tensionStatement:
+    "Audience wants clothes that make flexible work feel considered, but resists any brand that dramatises that flexibility. The brand must prove wearability in real transitional city moments without falling into aesthetic cliché.",
 };
 
 export const campaignRoutes: CampaignRoute[] = [
@@ -81,6 +90,18 @@ export const campaignRoutes: CampaignRoute[] = [
     sampleCopy: ["A shirt for the second address of the day.", "Between places, properly dressed."],
     assetIdeas: ["tight environmental stills", "short walking details", "flat lays with notes and receipts"],
     risks: ["May feel too subtle for TikTok", "Needs excellent photography to avoid blandness"],
+    enemy: "Generic travel aesthetics that romanticise transit instead of inhabiting it",
+    visualWorld: [
+      "tight environmental stills — stairwells, cafe counters, studio windows at 4pm",
+      "hands holding things: keys, espresso cups, notebooks — never posed",
+      "city surfaces as negative space: concrete, tile, warm interior shadow",
+    ],
+    proofMechanism:
+      "Garments shot in real transitional city spaces with no travel codes — no luggage, no horizon lines, no departure boards",
+    channelFit: ["Instagram carousel (stillness and detail reward the format)", "email editorial", "website lookbook"],
+    killerLine: "For days with more than one place in them.",
+    failureMode:
+      "If the photography is merely pretty rather than precise, the route collapses into a generic lookbook and loses all strategic specificity",
   },
   {
     id: "route-between-addresses",
@@ -97,6 +118,18 @@ export const campaignRoutes: CampaignRoute[] = [
     sampleCopy: ["Current address: table 4, near the socket.", "A uniform for temporary coordinates."],
     assetIdeas: ["fragmented city notes", "portrait diptychs", "customer desk submissions"],
     risks: ["Could become abstract", "Participation may be low without a clear prompt", "Requires strong copy discipline"],
+    enemy: "The fiction that creative workers are always exactly where they should be",
+    visualWorld: [
+      "portrait diptychs: two cities, same person, same clothes",
+      "fragmented artefacts — annotated maps, voice memo screenshots, desk notes",
+      "street-level city corners in Madrid, Lisbon, Barcelona — not tourist views",
+    ],
+    proofMechanism:
+      "Participation mechanics that invite real people to submit their own 'between addresses' moment — the product appears as a consistent anchor across submissions",
+    channelFit: ["Instagram Reels (portrait participation format)", "email essay series", "printed city poster drops"],
+    killerLine: "You are not lost. You are between addresses.",
+    failureMode:
+      "If the participation prompt is too loose or the product disappears behind the concept, the campaign becomes a cultural project without a commercial engine",
   },
   {
     id: "route-uniform-for-motion",
@@ -113,6 +146,22 @@ export const campaignRoutes: CampaignRoute[] = [
     sampleCopy: ["The cafe-to-studio edit.", "One outfit, several rooms."],
     assetIdeas: ["styled outfit sets", "detail videos", "email signup landing block"],
     risks: ["Less distinctive than the bold route", "Can drift into catalog language"],
+    enemy: "The daily decision tax: what to wear to be presentable across too many different contexts",
+    visualWorld: [
+      "styled complete outfits photographed in sequence across three real city contexts",
+      "clean, warm light — interior rather than exterior",
+      "product as the constant in a changing day: same shirt, different desk",
+    ],
+    proofMechanism:
+      "Named uniform edits (cafe-to-studio, desk-to-dinner) with shoppable direct links — the brand proves versatility by building the outfits for you",
+    channelFit: [
+      "Instagram shopping (product tags on outfits)",
+      "email early access with outfit bundle CTAs",
+      "site product pages structured as editorial edits",
+    ],
+    killerLine: "Dinner, without the daily outfit negotiation.",
+    failureMode:
+      "If copy defaults to direct-response language or the brand voice slips into catalog tone, the route loses all premium positioning and becomes indistinguishable from fast fashion",
   },
 ];
 
@@ -170,6 +219,11 @@ export const personaSimulations: PersonaSimulation[] = [
     signupIntent: 3.8,
     confidence: "medium",
     caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+    understoodMessage: "NODO makes clothes for people who move through cities with intention — no drama, no performance",
+    mainObjection: "The campaign may not feel distinct enough to justify choosing NODO over a similar premium brand she already buys",
+    actionTrigger:
+      "Seeing a specific garment styled in a context that matches her actual week — not a mood board but a recognisable city moment",
+    bestCTA: "Shop the capsule — early access for a limited window",
   },
   {
     routeId: "route-quiet-itinerary",
@@ -183,6 +237,10 @@ export const personaSimulations: PersonaSimulation[] = [
     signupIntent: 3.5,
     confidence: "low",
     caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+    understoodMessage: "This is aspirational fashion that belongs in real city life, not in an edited travel reel",
+    mainObjection: "The price point is higher than his current comfort zone and the creative direction feels more editorial than approachable",
+    actionTrigger: "A single starter piece — an oversized shirt or bag — clearly photographed with a direct price point visible",
+    bestCTA: "Start with one piece — the [product name] at EUR [price]",
   },
   {
     routeId: "route-quiet-itinerary",
@@ -196,6 +254,10 @@ export const personaSimulations: PersonaSimulation[] = [
     signupIntent: 3.3,
     confidence: "low",
     caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+    understoodMessage: "These are clothes that handle a flexible, multi-context day without requiring extra effort",
+    mainObjection: "No clear reason to act now — the campaign feels like something to revisit rather than something to buy today",
+    actionTrigger: "An explicit outfit recommendation — 'if your week looks like X, this is the edit' — that removes decision friction",
+    bestCTA: "Build your uniform — three pieces, one flexible week",
   },
   // route-between-addresses × all three personas
   {
@@ -210,6 +272,11 @@ export const personaSimulations: PersonaSimulation[] = [
     signupIntent: 3.9,
     confidence: "medium",
     caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+    understoodMessage: "NODO has a point of view about how creative people actually live and move — this brand sees me",
+    mainObjection:
+      "The campaign concept is strong but if execution is loose or the product is hidden, it becomes brand noise rather than a brand reason to buy",
+    actionTrigger: "Seeing her kind of person wear the product in a specific, accurate city context that the participation mechanic makes feel real",
+    bestCTA: "Submit your between-addresses moment — and see the collection",
   },
   {
     routeId: "route-between-addresses",
@@ -223,6 +290,11 @@ export const personaSimulations: PersonaSimulation[] = [
     signupIntent: 4.2,
     confidence: "medium",
     caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+    understoodMessage: "This brand is for people who move between cities and contexts — the copy feels like it was written about my actual week",
+    mainObjection:
+      "High aesthetic resonance does not automatically translate to purchase if the product is not clearly visible and the price feels distant from student budgets",
+    actionTrigger: "A share or repost mechanic with a prize or early-access incentive — lower commitment than purchase",
+    bestCTA: "Share your between-addresses — first 100 submissions get early capsule access",
   },
   {
     routeId: "route-between-addresses",
@@ -236,6 +308,10 @@ export const personaSimulations: PersonaSimulation[] = [
     signupIntent: 4.0,
     confidence: "low",
     caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+    understoodMessage: "NODO understands the fragmented week — this brand is relevant to how I actually live",
+    mainObjection: "Concept resonance is high but product clarity is low — she understands the idea but cannot clearly identify what to buy",
+    actionTrigger: "An email that connects the campaign concept to a specific curated outfit for her context — startup to dinner",
+    bestCTA: "The remote week edit — curated for your kind of flexible Friday",
   },
   // route-uniform-for-motion × all three personas
   {
@@ -250,6 +326,12 @@ export const personaSimulations: PersonaSimulation[] = [
     signupIntent: 3.5,
     confidence: "medium",
     caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+    understoodMessage: "NODO is offering practical premium fashion that solves a real wardrobe problem for people with multi-context days",
+    mainObjection:
+      "The route may read as too straightforwardly commercial — she associates NODO with editorial restraint, not catalog clarity",
+    actionTrigger:
+      "A product bundle framed with enough creative language to keep the premium register intact — not just 'shop the look'",
+    bestCTA: "The cafe-to-studio edit — three pieces for a day with two addresses",
   },
   {
     routeId: "route-uniform-for-motion",
@@ -263,6 +345,11 @@ export const personaSimulations: PersonaSimulation[] = [
     signupIntent: 3.4,
     confidence: "low",
     caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+    understoodMessage: "NODO sells complete outfits that work across a modern flexible day — clear, practical, premium",
+    mainObjection:
+      "The route does not give him a strong enough cultural or identity reason to choose NODO over a comparable brand at a similar price point",
+    actionTrigger: "One anchor product — a bag or oversized shirt — that feels like an entry point into the NODO world without committing to a full uniform",
+    bestCTA: "Start with the bag — the rest of the edit follows naturally",
   },
   {
     routeId: "route-uniform-for-motion",
@@ -276,6 +363,10 @@ export const personaSimulations: PersonaSimulation[] = [
     signupIntent: 4.4,
     confidence: "medium",
     caveat: "Synthetic planning estimate. Not real audience research or market validation.",
+    understoodMessage: "NODO has built an outfit system for people like me — flexible, presentable, and not high-maintenance",
+    mainObjection: "The main barrier is price justification — she needs to believe the pieces will last and work across enough contexts to be worth EUR 80–220",
+    actionTrigger: "A clear cost-per-wear or outfit versatility argument presented without sounding like a sale pitch",
+    bestCTA: "Three pieces, five days — see the uniform",
   },
 ];
 
@@ -303,6 +394,32 @@ export const premortemReview: PremortemReview = {
   decisionWarnings: [
     "Scores are strategic estimates, not predictions.",
     "Synthetic reactions must never be presented as real customer research.",
+  ],
+  topFailureRisks: [
+    {
+      risk: "Generic visual execution erases strategic specificity",
+      whyItHappens:
+        "Small production budgets create pressure to use stock-adjacent photography or over-polished commercial shots that feel indistinguishable from any premium basics brand",
+      earlyWarningSign: "Shot list defaults to clean-background product tiles without any city environmental context",
+      mitigation: "Lock the visual brief before production begins — specific locations, surfaces, and lighting conditions are non-negotiable",
+      affectedTeam: "Creative / Photography",
+    },
+    {
+      risk: "Synthetic audience insights are presented as research in client-facing documents",
+      whyItHappens:
+        "Planning documents that cite simulation scores without clear caveats can be mistaken for validated audience research by stakeholders reviewing summaries",
+      earlyWarningSign: "Deck references 'audience data showing X%' without the synthetic planning label",
+      mitigation: "Add a synthetic-data disclaimer to every output document that references persona scores or simulation results",
+      affectedTeam: "Strategy / Client Services",
+    },
+    {
+      risk: "Pop-up activation is built into launch communications before the city is confirmed",
+      whyItHappens:
+        "Teams under launch pressure include the pop-up as a live CTA to drive urgency — then must retract or redirect when the location falls through",
+      earlyWarningSign: "Launch email draft references a specific city or venue before internal confirmation is received",
+      mitigation: "Keep pop-up references modular — produce optional versions of all launch assets that can be inserted only once confirmed",
+      affectedTeam: "Operations / Content",
+    },
   ],
 };
 
@@ -410,6 +527,68 @@ function buildExecutionPlan(selectedRouteId: string): CampaignExecutionPlan {
       "Create final shot list aligned to selected route creative territory",
       "Define email signup incentive (early access, editorial PDF, or discount)",
       "Brief photographer with route concept and tone guidance",
+    ],
+    heroVisualSystem:
+      "City transitional spaces — stairwells, cafe counters, studio window corners — shot with tight framing, warm interior light, and no travel codes. Garments appear as the consistent anchor across changing environments.",
+    shootList: [
+      "Exterior stairwell: oversized shirt, natural light, concrete wall — 3 angles",
+      "Cafe counter interior: shirt + trouser + bag, espresso in hand — 2 stills + 1 detail reel",
+      "Studio window seat: knitwear, golden hour light, notebook on table — 3 angles",
+      "Street-level city corner (Madrid or Lisbon): full look, unposed — 2 stills",
+      "Detail series: fabric texture, hem, bag hardware, collar construction — 6 tight crops",
+      "Flat lay: receipt, keys, coffee token, campaign card alongside garment — 2 setups",
+    ],
+    oohHeadlines: [
+      "For days with more than one place in them.",
+      "Between meetings. Between cities. Between versions of the plan.",
+      "A shirt for the second address of the day.",
+      "Quiet uniform. Moving city.",
+    ],
+    paidSocialHooks: [
+      "You know that moment between the studio and the dinner — NODO is built for that.",
+      "The oversized shirt that travels between three different desks without announcing itself.",
+      "For people whose days don't start or end in one place. The new NODO capsule.",
+      "No airport. No suitcase. Just the capsule for moving through your city with intention.",
+    ],
+    landingPageBlocks: [
+      {
+        block: "Hero",
+        purpose: "Establish brand territory and campaign concept immediately",
+        content:
+          "Full-bleed editorial still. Headline: 'For days with more than one place in them.' Subheadline: 'The NODO capsule — available [date].' Single CTA: Join the waitlist.",
+      },
+      {
+        block: "Tension statement",
+        purpose: "Articulate the campaign point of view in 2–3 sentences before the product appears",
+        content:
+          "Cities move faster than calendars. NODO is for the day that starts in the studio and ends somewhere you hadn't planned. Dressed for every version of it.",
+      },
+      {
+        block: "Product edit",
+        purpose: "Present the capsule as a curated system, not a product list",
+        content:
+          "Three outfit configurations: Cafe-to-Studio / Desk-to-Dinner / Day-to-Pop-up. Each configuration shows 3–4 pieces with a single 'Shop this uniform' CTA.",
+      },
+      {
+        block: "Social proof placeholder",
+        purpose: "Reserve space for real customer submissions or editorial coverage after launch week",
+        content:
+          "[Placeholder for 2–3 customer photos or editorial mentions to be inserted post-launch. Do not use synthetic reactions as social proof.]",
+      },
+      {
+        block: "Email capture",
+        purpose: "Convert interest into owned audience before and after launch",
+        content:
+          "Headline: 'Early access. No noise.' Body: 'First look at the capsule before the public drop. No commitment. Unsubscribe anytime.' CTA: Get early access.",
+      },
+    ],
+    legalSubstantiationChecklist: [
+      "Time claims (e.g. 'for the day') — confirm no implied durability or performance guarantee",
+      "Sustainability claims — do not use 'sustainable', 'eco', or 'responsible' unless materials are certified and documentation is on file",
+      "Price claims — any 'value', 'worth', or 'cost-per-wear' framing requires review before publication",
+      "Behavior change claims — no copy should imply the capsule changes how audiences work or live; frame as enabling not transforming",
+      "Pop-up event claims — include only if venue is contractually confirmed; remove or modularise if unconfirmed",
+      "Synthetic research disclaimer — any document citing persona resonance scores must include the label: 'Synthetic planning estimates. Not real audience research.'",
     ],
   };
 }

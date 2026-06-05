@@ -117,6 +117,12 @@ describe("campaignRoutesOutputSchema – hardened strategic role enforcement", (
     sampleCopy: ["Some copy"],
     assetIdeas: ["An asset"],
     risks: ["A risk"],
+    enemy: "Generic category defaults.",
+    visualWorld: ["Clean interior spaces with natural light."],
+    proofMechanism: "Product shown in context without travel codes.",
+    channelFit: ["Instagram carousel"],
+    killerLine: "A key line for this route.",
+    failureMode: "If execution is generic, the route disappears.",
   };
 
   it("passes when routes include safest, boldest, and conversion with unique IDs", () => {

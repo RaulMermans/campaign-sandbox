@@ -88,6 +88,13 @@ function simulateReactionsMock(
           confidence: "low",
           caveat:
             "Synthetic planning estimate. Not real audience research, survey data, or market validation.",
+          understoodMessage:
+            "The campaign communicates a clear brand point of view relevant to this segment.",
+          mainObjection:
+            "Insufficient product visibility to justify immediate purchase consideration.",
+          actionTrigger:
+            "Clearer product framing with a direct path to purchase or early access.",
+          bestCTA: "See the collection",
         });
       }
     }

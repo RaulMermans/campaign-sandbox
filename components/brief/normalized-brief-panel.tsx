@@ -62,9 +62,15 @@ export function NormalizedBriefPanel({
           <CardTitle>Strategic Tension</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 text-sm leading-6 text-stone-700">
-          <p className="text-base font-medium text-stone-950">{tension.coreTension}</p>
-          <Detail label="Opportunity" value={tension.creativeOpportunity} />
-          <Detail label="Avoid" value={tension.avoid.join(", ")} />
+          <p className="rounded-md bg-stone-50 px-3 py-2.5 text-sm font-medium leading-6 text-stone-950">
+            {tension.tensionStatement}
+          </p>
+          <div className="grid gap-3">
+            <Detail label="Audience desire" value={tension.audienceDesire} />
+            <Detail label="Resistance" value={tension.audienceResistance} />
+            <Detail label="Proof challenge" value={tension.brandProofChallenge} />
+            <Detail label="Avoid / creative trap" value={tension.creativeTrap} />
+          </div>
         </CardContent>
       </Card>
     </div>

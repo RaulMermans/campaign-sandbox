@@ -101,6 +101,12 @@ export const strategicTensionSchema = z
     brandContradiction: z.string().min(1),
     creativeOpportunity: z.string().min(1),
     avoid: z.array(z.string()).min(1),
+    // Sharper structural fields for the tension statement
+    audienceDesire: z.string().min(1),
+    audienceResistance: z.string().min(1),
+    brandProofChallenge: z.string().min(1),
+    creativeTrap: z.string().min(1),
+    tensionStatement: z.string().min(1),
   })
   .strict();
 
@@ -119,6 +125,13 @@ export const campaignRouteSchema = z
     sampleCopy: z.array(z.string().min(1)).min(1),
     assetIdeas: z.array(z.string().min(1)).min(1),
     risks: z.array(z.string().min(1)).min(1),
+    // Production DNA fields
+    enemy: z.string().min(1),
+    visualWorld: z.array(z.string().min(1)).min(1),
+    proofMechanism: z.string().min(1),
+    channelFit: z.array(z.string().min(1)).min(1),
+    killerLine: z.string().min(1),
+    failureMode: z.string().min(1),
   })
   .strict();
 
@@ -149,6 +162,11 @@ export const personaSimulationSchema = z
     signupIntent: boundedScoreSchema,
     confidence: z.enum(["low", "medium", "high"]),
     caveat: z.string().min(1),
+    // Decision-oriented fields
+    understoodMessage: z.string().min(1),
+    mainObjection: z.string().min(1),
+    actionTrigger: z.string().min(1),
+    bestCTA: z.string().min(1),
   })
   .strict();
 
@@ -210,6 +228,19 @@ export const premortemReviewSchema = z
       .min(1),
     overallRisks: z.array(z.string().min(1)).min(1),
     decisionWarnings: z.array(z.string().min(1)).min(1),
+    topFailureRisks: z
+      .array(
+        z
+          .object({
+            risk: z.string().min(1),
+            whyItHappens: z.string().min(1),
+            earlyWarningSign: z.string().min(1),
+            mitigation: z.string().min(1),
+            affectedTeam: z.string().min(1),
+          })
+          .strict(),
+      )
+      .min(1),
   })
   .strict();
 
@@ -330,6 +361,23 @@ export const campaignExecutionPlanSchema = z
       )
       .min(1),
     nextActions: z.array(z.string().min(1)).min(1),
+    // Production-specific sections
+    heroVisualSystem: z.string().min(1),
+    shootList: z.array(z.string().min(1)).min(1),
+    oohHeadlines: z.array(z.string().min(1)).min(1),
+    paidSocialHooks: z.array(z.string().min(1)).min(1),
+    landingPageBlocks: z
+      .array(
+        z
+          .object({
+            block: z.string().min(1),
+            purpose: z.string().min(1),
+            content: z.string().min(1),
+          })
+          .strict(),
+      )
+      .min(1),
+    legalSubstantiationChecklist: z.array(z.string().min(1)).min(1),
   })
   .strict();
 
@@ -463,3 +511,23 @@ export const campaignRunOutputSchema = z
   .strict();
 
 export type CampaignRunOutput = z.infer<typeof campaignRunOutputSchema>;
+
+export const campaignExportInputSchema = z
+  .object({
+    runId: z.string().optional(),
+    normalizedBrief: normalizedCampaignBriefSchema,
+    strategicTension: strategicTensionSchema,
+    routes: z.array(campaignRouteSchema).min(1),
+    personas: z.array(personaSchema).min(1),
+    simulations: z.array(personaSimulationSchema).min(1),
+    scores: z.array(routeScoreSchema).min(1),
+    premortemReview: premortemReviewSchema,
+    comparison: routeComparisonMatrixSchema,
+    selectedRouteId: z.string().optional(),
+    executionPlan: campaignExecutionPlanSchema.optional(),
+    traceEvents: z.array(traceEventSchema).optional(),
+    format: z.enum(["markdown", "html"]).default("markdown"),
+  })
+  .strict();
+
+export type CampaignExportInput = z.infer<typeof campaignExportInputSchema>;

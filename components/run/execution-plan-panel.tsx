@@ -165,6 +165,76 @@ export function ExecutionPlanPanel({ plan }: ExecutionPlanPanelProps) {
         </ol>
       </Section>
 
+      {/* Hero Visual System */}
+      <Section title="Hero Visual System">
+        <p className="text-sm leading-6 text-stone-700">{plan.heroVisualSystem}</p>
+      </Section>
+
+      {/* Shoot List */}
+      <Section title="Shoot List">
+        <ol className="grid gap-2">
+          {plan.shootList.map((shot, i) => (
+            <li key={shot} className="flex gap-3 text-sm text-stone-700">
+              <span className="shrink-0 font-semibold text-stone-400">{i + 1}.</span>
+              {shot}
+            </li>
+          ))}
+        </ol>
+      </Section>
+
+      {/* OOH Headlines */}
+      <Section title="OOH Headlines">
+        <ul className="grid gap-2">
+          {plan.oohHeadlines.map((h) => (
+            <li
+              key={h}
+              className="rounded-md bg-stone-900 px-4 py-2.5 text-sm font-medium text-white"
+            >
+              {h}
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      {/* Paid Social Hooks */}
+      <Section title="Paid Social Hooks">
+        <ul className="grid gap-2">
+          {plan.paidSocialHooks.map((hook) => (
+            <li
+              key={hook}
+              className="rounded-md border border-stone-200 px-4 py-2.5 text-sm italic text-stone-700"
+            >
+              &ldquo;{hook}&rdquo;
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      {/* Landing Page Blocks */}
+      <Section title="Landing Page Structure">
+        <div className="grid gap-3">
+          {plan.landingPageBlocks.map((block) => (
+            <div key={block.block} className="rounded-md border border-stone-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-400">{block.block}</p>
+              <p className="mt-1 text-xs text-stone-500">{block.purpose}</p>
+              <p className="mt-2 text-sm text-stone-700">{block.content}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Legal / Substantiation Checklist */}
+      <Section title="Legal / Substantiation Checklist">
+        <ul className="grid gap-2">
+          {plan.legalSubstantiationChecklist.map((item) => (
+            <li key={item} className="flex gap-2 text-sm text-stone-700">
+              <span className="mt-1 h-4 w-4 shrink-0 text-amber-500">☐</span>
+              {item}
+            </li>
+          ))}
+        </ul>
+      </Section>
+
       {/* Disclaimer */}
       <p className="rounded-lg border border-stone-100 bg-stone-50 px-4 py-3 text-xs leading-5 text-stone-400">
         This execution plan is a strategic planning document. Assumptions, copy examples, and channel

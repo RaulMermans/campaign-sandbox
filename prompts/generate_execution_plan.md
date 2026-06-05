@@ -41,7 +41,19 @@ The output must match this exact structure:
         "mitigation": "<string — concrete mitigation step>"
       }
     ],
-    "nextActions": ["<string>", ...]
+    "nextActions": ["<string>", ...],
+    "heroVisualSystem": "<string — one paragraph describing the specific visual world: locations, lighting style, composition, props, what appears in frame and what does not. Concrete enough to brief a photographer.>",
+    "shootList": ["<string — specific shot descriptions: subject, location, angle, styling notes. At least 5 shots.>"],
+    "oohHeadlines": ["<string — exact out-of-home headline copy ready for design. At least 3 lines.>"],
+    "paidSocialHooks": ["<string — exact paid social opening hooks (first 1–2 sentences of ad copy). At least 3 hooks.>"],
+    "landingPageBlocks": [
+      {
+        "block": "<string — block name: Hero, Tension Statement, Product Edit, Social Proof, Email Capture, etc.>",
+        "purpose": "<string — what this block achieves on the page>",
+        "content": "<string — specific copy or content direction for this block. Not placeholder text.>"
+      }
+    ],
+    "legalSubstantiationChecklist": ["<string — specific claim category and what substantiation is required before publishing>"]
   }
 }
 
@@ -59,10 +71,15 @@ Rules:
 - measurementPlan must include metrics tied to the campaign's stated objectives.
 - risksAndMitigations must be route-specific, not generic.
 - nextActions must be actionable steps the team can execute immediately.
+- heroVisualSystem must be specific enough to brief a photographer — include locations, light quality, composition style, what is in frame and what is deliberately excluded.
+- shootList must describe individual shots with enough detail to be used on a production call sheet. Minimum 5 shots.
+- oohHeadlines must be exact, poster-ready copy lines. Minimum 3 lines.
+- paidSocialHooks must be exact opening hooks for paid social ads — the first line that stops a scroll. Minimum 3 hooks.
+- landingPageBlocks must cover the full page structure from hero to email capture. Each block must include specific copy direction, not placeholders.
+- legalSubstantiationChecklist must flag specific claim types that require legal review before publication: time claims, sustainability claims, savings claims, behavior change claims, health/wellness claims, event claims.
 - Do not invent unsupported performance claims.
 - Do not claim predicted success rates, conversion probabilities, or ROI.
 - Do not treat synthetic persona reactions as real market research.
 - Do not include confidence intervals or market predictions.
-- When claims touch time-based results, sustainability, savings, or behavior change, note that claims require substantiation before publishing.
 - assumptions must include a clear statement that synthetic audience reactions are planning hypotheses, not validated customer evidence.
 - Output must be a single valid JSON object. No trailing commas. No comments.

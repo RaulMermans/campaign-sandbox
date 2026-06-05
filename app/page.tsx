@@ -12,9 +12,11 @@ import { RunMetadataPanel } from "@/components/run/run-metadata-panel";
 import { SectionNav } from "@/components/run/section-nav";
 import { CollapsibleSection } from "@/components/run/collapsible-section";
 import { ExecutionPlanPanel } from "@/components/run/execution-plan-panel";
+import { ExportPanel } from "@/components/run/export-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   CampaignExecutionPlan,
+  CampaignExportInput,
   CampaignRunOutput,
   RouteScore,
 } from "@/lib/schemas/campaign";
@@ -370,6 +372,28 @@ function CampaignRunResult({
       >
         <div className="p-5">
           <p className="mb-4 font-medium text-stone-950 text-sm">{run.premortemReview.summary}</p>
+
+          {/* Top failure risks — shown prominently */}
+          {run.premortemReview.topFailureRisks.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-400 mb-2">Top failure risks</p>
+              <div className="grid gap-3">
+                {run.premortemReview.topFailureRisks.slice(0, 3).map((tfr) => (
+                  <div key={tfr.risk} className="rounded-md border border-amber-200 bg-amber-50/50 p-4">
+                    <p className="text-sm font-semibold text-stone-900">{tfr.risk}</p>
+                    <p className="mt-1 text-xs text-stone-600">{tfr.whyItHappens}</p>
+                    <div className="mt-2 grid gap-1 text-xs text-stone-500">
+                      <p><span className="font-medium text-stone-600">Early warning:</span> {tfr.earlyWarningSign}</p>
+                      <p><span className="font-medium text-stone-600">Mitigation:</span> {tfr.mitigation}</p>
+                      <p><span className="font-medium text-stone-600">Team:</span> {tfr.affectedTeam}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Route-specific risks */}
           <div className="grid gap-3 md:grid-cols-3">
             {run.premortemReview.routeRisks.map((routeRisk) => (
               <div key={routeRisk.routeId} className="rounded-md border border-stone-200 p-4 text-sm leading-6 text-stone-700">
@@ -505,6 +529,32 @@ function CampaignRunResult({
             …
           </div>
         ) : null}
+      </section>
+
+      {/* Export section */}
+      <section id="export">
+        {executionPlan ? (
+          <ExportPanel
+            exportInput={{
+              runId: run.runId,
+              normalizedBrief: run.normalizedBrief,
+              strategicTension: run.strategicTension,
+              routes: run.routes,
+              personas: run.personas,
+              simulations: run.simulations,
+              scores: run.scores,
+              premortemReview: run.premortemReview,
+              comparison: run.comparison,
+              selectedRouteId: selectedRouteId ?? undefined,
+              executionPlan,
+              traceEvents: allTraceEvents,
+            } satisfies Omit<CampaignExportInput, "format">}
+          />
+        ) : (
+          <div className="rounded-lg border border-stone-200 bg-white p-5 text-sm text-stone-400">
+            Export will be available after the execution plan is generated.
+          </div>
+        )}
       </section>
 
       <CollapsibleSection

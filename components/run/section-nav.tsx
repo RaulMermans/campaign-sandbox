@@ -9,6 +9,7 @@ const SECTIONS = [
   { id: "comparison", label: "Comparison" },
   { id: "selection", label: "Selection" },
   { id: "execution-plan", label: "Execution Plan" },
+  { id: "export", label: "Export" },
   { id: "trace", label: "Trace" },
 ];
 

@@ -172,6 +172,15 @@ describe("validatePremortemCoverage", () => {
       })),
       overallRisks: ["overall risk"],
       decisionWarnings: ["decision warning"],
+      topFailureRisks: [
+        {
+          risk: "Generic visual execution.",
+          whyItHappens: "Budget pressure.",
+          earlyWarningSign: "Shot list defaults to clean-background tiles.",
+          mitigation: "Lock visual brief before production.",
+          affectedTeam: "Creative",
+        },
+      ],
     };
   }
 
@@ -271,6 +280,15 @@ describe("premortemReviewStage – OpenAI mode with bad response", () => {
         ],
         overallRisks: ["overall risk"],
         decisionWarnings: ["warning one"],
+        topFailureRisks: [
+          {
+            risk: "A top risk.",
+            whyItHappens: "Because of production pressure.",
+            earlyWarningSign: "Shot list changes late.",
+            mitigation: "Lock visual brief early.",
+            affectedTeam: "Creative",
+          },
+        ],
       },
     };
 

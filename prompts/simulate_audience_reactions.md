@@ -22,7 +22,11 @@ Return exactly this JSON structure:
       "conversionIntent": 1,
       "signupIntent": 1,
       "confidence": "low | medium | high",
-      "caveat": "string"
+      "caveat": "string",
+      "understoodMessage": "string",
+      "mainObjection": "string",
+      "actionTrigger": "string",
+      "bestCTA": "string"
     }
   ]
 }
@@ -55,6 +59,15 @@ Return exactly this JSON structure:
 - Every `caveat` field must clearly state that the reaction is **synthetic** and is not real audience research.
 - Example: "Synthetic planning estimate. Not real audience research, survey data, or market validation."
 - Do not shorten or remove the synthetic label.
+
+## Decision fields
+
+Every simulation must answer four decision questions:
+
+- **understoodMessage**: What does this persona think the campaign is saying? Write in their voice — their interpretation, not the brand's intent. One sentence.
+- **mainObjection**: What is the single most important thing preventing this persona from taking action? Be specific — not vague ("too expensive") but precise ("the price is above what she spends without a clear cost-per-wear justification").
+- **actionTrigger**: What specific thing — a content format, an offer, a framing, a social proof signal — would make this persona consider or convert? Be concrete and route-specific.
+- **bestCTA**: The strongest call-to-action angle for this specific persona-route pair. Write it as a short, usable CTA copy line, not a category description. Example: "Shop the cafe-to-studio edit" not "product CTA".
 
 ## Safety boundaries
 

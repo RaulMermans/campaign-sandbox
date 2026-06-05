@@ -17,6 +17,12 @@ Return JSON only. No markdown. No explanation. No text before or after the JSON 
 - Every route must include at least one risk.
 - sampleCopy must be realistic campaign-safe copy examples, not full ad claims or guarantee statements.
 - Avoid generic campaign names. Names must reflect the specific brand and territory.
+- Route names must feel ownable and specific — avoid "Elevated [Category] Ritual" or "[Brand] Moments" unless genuinely justified.
+- Each route must have distinct strategic behavior — not cosmetic reframes of the same concept.
+- visualWorld must describe what the campaign actually looks like, not just mood adjectives.
+- proofMechanism must explain why the route is believable, not just desirable.
+- killerLine must be the sharpest single line this route would put on a poster or email subject line.
+- failureMode must name the specific way this route goes wrong if execution is lazy or underfunded.
 - Do not expose raw model reasoning. Return the JSON object only.
 
 ## Output schema
@@ -28,7 +34,7 @@ Return exactly this JSON shape:
   "routes": [
     {
       "id": "string — kebab-case unique identifier",
-      "name": "string — short evocative route name",
+      "name": "string — short ownable route name specific to the brand and territory",
       "strategicRole": "safest | boldest | conversion",
       "position": "string — what strategic ground this route occupies",
       "concept": "string — the core creative idea in 2–4 sentences",
@@ -39,7 +45,13 @@ Return exactly this JSON shape:
       "activationIdeas": ["string — specific executional ideas"],
       "sampleCopy": ["string — example copy lines, campaign-safe"],
       "assetIdeas": ["string — specific asset types needed"],
-      "risks": ["string — real risks this route carries"]
+      "risks": ["string — real risks this route carries"],
+      "enemy": "string — what this route fights against; the specific attitude, behavior, or category convention the route rejects",
+      "visualWorld": ["string — specific, concrete descriptions of what the campaign looks like: locations, lighting, props, composition style. Not mood adjectives."],
+      "proofMechanism": "string — why the route is believable; the specific evidence, execution choice, or brand behavior that makes the claim credible",
+      "channelFit": ["string — where this route naturally performs and why the format fits the creative approach"],
+      "killerLine": "string — the route's sharpest single campaign line; poster-ready, email-subject-ready",
+      "failureMode": "string — the specific way this route fails if execution is lazy, underfunded, or mishandled"
     }
   ]
 }

@@ -50,7 +50,11 @@ Even when all eight implemented stages run (six with a real LLM provider, two de
 - The pre-mortem review is a structured risk analysis — not market research, not a success prediction.
 - The comparison matrix is a decision-support tool built from deterministic scoring signals. It is not a prediction or market validation.
 - Human selection is explicit: no execution plan is generated until the user clicks a route button and then clicks "Generate execution plan." The system recommendation from `compare_routes` is guidance only and is never auto-applied.
-- Export artifact is not implemented.
+- Export artifact is deterministic — no LLM is used in report generation.
+- The export report includes explicit synthetic-research caveats in every section that references persona scores or simulation results.
+- The export report includes a legal/substantiation checklist identifying claim categories that require review before publication.
+- No PDF export in v1. No persistence. No auth. No billing.
+- The HTML renderer escapes all user/model-generated text to prevent XSS injection in the exported file.
 
 ## `extract_strategic_tension` safety rules
 

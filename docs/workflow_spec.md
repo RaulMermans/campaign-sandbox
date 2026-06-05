@@ -35,4 +35,20 @@ In both modes, all stages execute and all trace events are recorded. Fast-mode l
 
 If a brief does not specify a budget, the `NormalizedCampaignBrief.budget` field should be omitted or have `label: "Not specified"` and `null` for `min`/`max`. The UI displays `Not specified` in this case. Never output `0` as a placeholder for unknown budget.
 
-`export_artifact` will later package the final plan and trace into a shareable artifact. Not implemented.
+`export_artifact` is a deterministic (no LLM) export stage triggered after the execution plan is generated. It builds a normalized `CampaignReport` model from all stage outputs, then renders it as Markdown or HTML. No PDF, no persistence, no LLM. API: `POST /api/campaign/export`. The report includes synthetic-research caveats, legal/substantiation checklists, and route comparison win explanations. Scores remain bounded qualitative estimates (1–5) throughout the report.
+
+## Stage table
+
+| Stage | Type | Notes |
+|---|---|---|
+| `normalize_brief` | real optional / structured outputs | OpenAI Structured Outputs with JSON schema |
+| `extract_strategic_tension` | real optional | Richer schema: audienceDesire, audienceResistance, brandProofChallenge, creativeTrap, tensionStatement |
+| `generate_campaign_routes` | real optional | Richer route schema: enemy, visualWorld, proofMechanism, channelFit, killerLine, failureMode |
+| `build_personas` | real optional | Unchanged |
+| `simulate_reactions` | real optional | Decision-oriented fields: understoodMessage, mainObjection, actionTrigger, bestCTA |
+| `score_routes` | deterministic | Unchanged |
+| `premortem_review` | real optional | Extended with topFailureRisks (prioritised cross-route risk cards) |
+| `compare_routes` | deterministic | Ranking labels derived in UI; close-score explanation in comparison summary |
+| `human_selection` | local explicit user action | Unchanged |
+| `generate_execution_plan` | real optional | Production-specific plan: heroVisualSystem, shootList, oohHeadlines, paidSocialHooks, landingPageBlocks, legalSubstantiationChecklist |
+| `export_artifact` | deterministic Markdown/HTML | No LLM, no PDF, no persistence in v1 |

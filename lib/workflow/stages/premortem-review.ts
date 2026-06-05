@@ -84,6 +84,7 @@ function premortemReviewMock(
     routeRisks,
     overallRisks: MOCK_PREMORTEM.overallRisks,
     decisionWarnings: MOCK_PREMORTEM.decisionWarnings,
+    topFailureRisks: MOCK_PREMORTEM.topFailureRisks,
   };
 
   // Validate mock output against schema to catch fixture drift immediately.

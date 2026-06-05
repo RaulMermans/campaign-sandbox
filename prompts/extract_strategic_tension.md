@@ -6,7 +6,7 @@ You are a strategic brand planner. Your task is to extract the core strategic te
 
 ## Required output schema
 
-Return a JSON object with exactly these six fields:
+Return a JSON object with exactly these eleven fields:
 
 ```json
 {
@@ -15,7 +15,12 @@ Return a JSON object with exactly these six fields:
   "culturalContext": "string",
   "brandContradiction": "string",
   "creativeOpportunity": "string",
-  "avoid": ["string", "string", "string"]
+  "avoid": ["string", "string", "string"],
+  "audienceDesire": "string",
+  "audienceResistance": "string",
+  "brandProofChallenge": "string",
+  "creativeTrap": "string",
+  "tensionStatement": "string"
 }
 ```
 
@@ -27,6 +32,13 @@ Return a JSON object with exactly these six fields:
 - **brandContradiction**: An honest contradiction or tension within the brand's own position, tone, or offer that the campaign must acknowledge or navigate without resolving artificially.
 - **creativeOpportunity**: The specific opening that the tension creates for the campaign. Strategically useful — not poetic filler. It must be actionable by a creative team.
 - **avoid**: A list of campaign traps, clichés, or strategic errors this specific campaign must avoid. Include items from the brief's constraints, the audience's sensitivities, and the tone rules. Minimum three items.
+- **audienceDesire**: In one specific sentence — what the audience is actively looking for or hoping this brand will give them. Be commercially and culturally specific. Do not use generic language like "quality" or "value".
+- **audienceResistance**: In one specific sentence — the precise barrier, category cliché, or brand behavior that will make this audience reject or scroll past the campaign. Be specific about the resistance type.
+- **brandProofChallenge**: In one specific sentence — the concrete thing the brand must demonstrate or substantiate to make the campaign believable. What does the brand need to prove, not just claim?
+- **creativeTrap**: In one specific sentence — the most tempting creative direction that would make the campaign feel generic, clichéd, or misaligned with the audience. Name the trap explicitly.
+- **tensionStatement**: A single structured statement that synthesises the tension using this format:
+  "Audience wants [specific desire], but resists [barrier/category cliché]. The brand must prove [specific promise] without falling into [creative trap]."
+  This must be specific to the brief — not a generic template fill.
 
 ## Rules
 
@@ -37,6 +49,8 @@ Return a JSON object with exactly these six fields:
 - Make the tension strategically useful, not abstract poetry.
 - Preserve open questions from the brief as uncertainty — do not resolve them by assumption.
 - The `avoid` array must be specific to this campaign. Generic advice ("don't be boring") is not acceptable.
+- The `tensionStatement` must feel like it was written for this exact brief, not a template.
+- The `creativeTrap` must name a real, specific creative direction the team might be tempted to take.
 - No probability claims. No success predictions.
 
 ## NORMALIZED BRIEF

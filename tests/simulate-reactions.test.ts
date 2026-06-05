@@ -179,6 +179,10 @@ describe("validateSimulationCoverage", () => {
       signupIntent: 3 as const,
       confidence: "medium" as const,
       caveat: "Synthetic planning estimate. Not real research.",
+      understoodMessage: "The campaign communicates a clear brand point of view.",
+      mainObjection: "Insufficient product visibility to justify purchase.",
+      actionTrigger: "Clearer product framing with a direct path to purchase.",
+      bestCTA: "See the collection",
     };
   }
 
