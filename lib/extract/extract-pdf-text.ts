@@ -18,10 +18,8 @@ export async function extractPdfText(
   let parseFn: PdfParseFn;
   try {
     // pdf-parse exports itself as a CommonJS default function.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     const mod: any = await import("pdf-parse");
     // Handle both { default: fn } and fn directly.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     parseFn = typeof mod === "function" ? mod : typeof mod.default === "function" ? mod.default : null;
     if (!parseFn) throw new Error("pdf-parse not callable");
   } catch {
