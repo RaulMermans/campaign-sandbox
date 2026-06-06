@@ -83,6 +83,10 @@ function checkText(text: string, fieldName: string): ProofIntegrityIssue[] {
   return issues;
 }
 
+export function hasBlockingProofIntegrityIssues(issues: ProofIntegrityIssue[]): boolean {
+  return issues.some((i) => i.severity === "error");
+}
+
 export function validateProofIntegrity(input: {
   normalizedBrief: NormalizedCampaignBrief;
   routes?: CampaignRoute[];

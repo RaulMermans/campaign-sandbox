@@ -41,12 +41,25 @@ describe("POST /api/campaign/extract-brief — input validation", () => {
     expect(body.error).toBeTruthy();
   });
 
-  it("returns 400 for unsupported file type", async () => {
+  it("returns 400 with UNSUPPORTED_FILE_TYPE code for unsupported file type", async () => {
     const file = new File(["content"], "brief.docx", { type: "application/octet-stream" });
     const res = await POST(makeFormDataRequest(file));
     expect(res.status).toBe(400);
-    const body = await res.json() as { error: string };
+    const body = await res.json() as { error: string; code: string };
     expect(body.error).toBeTruthy();
+    expect(body.code).toBe("UNSUPPORTED_FILE_TYPE");
+  });
+
+  it("returns 413 with FILE_TOO_LARGE code for oversized file", async () => {
+    const { MAX_FILE_SIZE_BYTES } = await import("@/lib/extract/file-validation");
+    const bigContent = new Uint8Array(MAX_FILE_SIZE_BYTES + 1);
+    const file = new File([bigContent], "big.txt", { type: "text/plain" });
+    Object.defineProperty(file, "size", { value: MAX_FILE_SIZE_BYTES + 1 });
+    const res = await POST(makeFormDataRequest(file));
+    expect(res.status).toBe(413);
+    const body = await res.json() as { error: string; code: string };
+    expect(body.error).toContain("15MB");
+    expect(body.code).toBe("FILE_TOO_LARGE");
   });
 });
 
@@ -78,11 +91,12 @@ describe("POST /api/campaign/extract-brief — TXT extraction", () => {
     expect(text).not.toMatch(/node_modules/);
   });
 
-  it("returns 422 for empty extraction", async () => {
+  it("returns 422 with EMPTY_EXTRACTION code for empty file", async () => {
     const file = new File([""], "empty.txt", { type: "text/plain" });
     const res = await POST(makeFormDataRequest(file));
     expect(res.status).toBe(422);
-    const body = await res.json() as { error: string };
+    const body = await res.json() as { error: string; code: string };
     expect(body.error).toBeTruthy();
+    expect(body.code).toBe("EMPTY_EXTRACTION");
   });
 });

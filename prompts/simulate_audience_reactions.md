@@ -85,20 +85,7 @@ Every simulation must answer four decision questions:
 - `positives` and `objections` should be grounded in the route concept and persona sensitivities from the input.
 - Reactions should surface strategic tensions, not resolve them. They are inputs to human judgment, not conclusions.
 
-## Persona Decision Skill
-
-Synthetic reactions are planning hypotheses. They are not focus group findings, survey data, or validated customer evidence. Every reaction must be written with that distinction clear.
-
-For every persona-route pair, answer these four decision questions:
-
-1. **understoodMessage** — what does this persona think the campaign is saying? Write it in their voice, from their interpretation — not the brand's intent.
-2. **mainObjection** — the single most important barrier preventing action. Be specific: not "too expensive" but "the price is above what she spends on a weeknight meal without a clear occasion to justify it."
-3. **actionTrigger** — what specific thing (a format, a framing, a social proof signal) would move this persona to consider or convert? Route-specific, not generic.
-4. **bestCTA** — write it as usable copy: the actual words on the button or subject line. "Your 7PM plan, under 30 minutes" not "product-focused CTA."
-
-Avoid fake focus-group certainty. Prefer: "this persona's likely interpretation is…" over "this audience will respond well to…"
-
-Every `caveat` must clearly state the reaction is synthetic and is not real audience research.
+<!-- skill:persona-decision -->
 
 ## What you have
 

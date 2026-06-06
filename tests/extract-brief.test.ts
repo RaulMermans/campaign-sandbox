@@ -150,6 +150,7 @@ describe("extractBriefText", () => {
     const result = await extractBriefText(file);
     expect(result.fileType).toBe("unsupported");
     expect(result.extractedText).toBe("");
+    expect(result.errorCode).toBe("UNSUPPORTED_FILE_TYPE");
   });
 
   it("truncates text exceeding MAX_EXTRACTED_CHARS and adds warning", async () => {
@@ -167,6 +168,20 @@ describe("extractBriefText", () => {
     const result = await extractBriefText(file);
     expect(result.extractedText).toBe("");
     expect(result.warnings.some((w) => w.toLowerCase().includes("large") || w.toLowerCase().includes("15 mb"))).toBe(true);
+    expect(result.errorCode).toBe("FILE_TOO_LARGE");
+  });
+
+  it("returns EMPTY_EXTRACTION errorCode for empty TXT file", async () => {
+    const file = new File([""], "empty.txt", { type: "text/plain" });
+    const result = await extractBriefText(file);
+    expect(result.extractedText).toBe("");
+    expect(result.errorCode).toBe("EMPTY_EXTRACTION");
+  });
+
+  it("returns no errorCode for valid extraction", async () => {
+    const file = new File(["A brief."], "brief.txt", { type: "text/plain" });
+    const result = await extractBriefText(file);
+    expect(result.errorCode).toBeUndefined();
   });
 
   it("does not expose raw stack traces in warnings", async () => {

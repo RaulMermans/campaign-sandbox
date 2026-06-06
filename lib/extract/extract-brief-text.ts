@@ -6,6 +6,12 @@ import { extractTxtText } from "./extract-txt-text";
 import { extractPdfText } from "./extract-pdf-text";
 import { extractPptxText } from "./extract-pptx-text";
 
+export type ExtractBriefErrorCode =
+  | "FILE_TOO_LARGE"
+  | "UNSUPPORTED_FILE_TYPE"
+  | "EMPTY_EXTRACTION"
+  | "EXTRACTION_FAILED";
+
 export interface BriefExtractionResult {
   fileName: string;
   fileType: SupportedFileType | "unsupported";
@@ -16,6 +22,7 @@ export interface BriefExtractionResult {
     pages?: number;
     slides?: number;
   };
+  errorCode?: ExtractBriefErrorCode;
 }
 
 export async function extractBriefText(file: File): Promise<BriefExtractionResult> {
@@ -29,6 +36,7 @@ export async function extractBriefText(file: File): Promise<BriefExtractionResul
       extractedText: "",
       warnings: [`Unsupported file type. Upload a PDF, PPTX, or TXT file.`],
       stats: { characters: 0 },
+      errorCode: "UNSUPPORTED_FILE_TYPE",
     };
   }
 
@@ -40,6 +48,7 @@ export async function extractBriefText(file: File): Promise<BriefExtractionResul
       extractedText: "",
       warnings: [sizeCheck.message ?? "File is too large."],
       stats: { characters: 0 },
+      errorCode: "FILE_TOO_LARGE",
     };
   }
 
@@ -76,6 +85,9 @@ export async function extractBriefText(file: File): Promise<BriefExtractionResul
     );
   }
 
+  const errorCode: ExtractBriefErrorCode | undefined =
+    extractedText.length === 0 ? "EMPTY_EXTRACTION" : undefined;
+
   return {
     fileName,
     fileType,
@@ -86,5 +98,6 @@ export async function extractBriefText(file: File): Promise<BriefExtractionResul
       pages,
       slides,
     },
+    errorCode,
   };
 }

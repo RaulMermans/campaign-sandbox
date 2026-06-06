@@ -46,11 +46,18 @@ export function BriefUploadPanel({
       if (!res.ok) {
         const d = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {};
         const warnings = Array.isArray(d.warnings) ? (d.warnings as string[]) : undefined;
-        setUploadState({
-          status: "extract-error",
-          message: typeof d.error === "string" ? d.error : "Extraction failed.",
-          warnings,
-        });
+        const code = typeof d.code === "string" ? d.code : undefined;
+        const friendlyMessages: Record<string, string> = {
+          FILE_TOO_LARGE:
+            "This file is larger than 15MB. Please upload a smaller brief or paste the text manually.",
+          UNSUPPORTED_FILE_TYPE: "Unsupported file type. Upload PDF, PPTX, or TXT.",
+          EMPTY_EXTRACTION:
+            "No extractable text found. OCR is not supported in v1. Try a selectable-text PDF or paste the brief manually.",
+        };
+        const message =
+          (code && friendlyMessages[code]) ??
+          (typeof d.error === "string" ? d.error : "Extraction failed.");
+        setUploadState({ status: "extract-error", message, warnings });
         return;
       }
     } catch {

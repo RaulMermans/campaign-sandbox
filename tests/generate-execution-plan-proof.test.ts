@@ -2,19 +2,19 @@
 // No LLM calls. Tests the deterministic guardrail against mock plan data.
 
 import { describe, expect, it } from "vitest";
-import { validateProofIntegrity } from "@/lib/workflow/quality/validate-proof-integrity";
+import {
+  validateProofIntegrity,
+  hasBlockingProofIntegrityIssues,
+} from "@/lib/workflow/quality/validate-proof-integrity";
 import {
   normalizedBrief as MOCK_BRIEF,
   campaignRoutes as MOCK_ROUTES,
+  buildMockCompletedCampaignRun,
 } from "@/lib/workflow/mock-campaign-run";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { composePrompt } from "@/lib/prompts/compose-prompt";
 
 async function loadExecutionPlanPrompt(): Promise<string> {
-  return readFile(
-    path.join(process.cwd(), "prompts", "generate_execution_plan.md"),
-    "utf8",
-  );
+  return composePrompt("generate_execution_plan.md");
 }
 
 describe("execution plan prompt – proof integrity rules", () => {
@@ -31,6 +31,16 @@ describe("execution plan prompt – proof integrity rules", () => {
   it("prompt includes 'if available' as required qualifier", async () => {
     const prompt = await loadExecutionPlanPrompt();
     expect(prompt).toContain("if available");
+  });
+
+  it("prompt includes Claims Substantiation Skill (via skill composition)", async () => {
+    const prompt = await loadExecutionPlanPrompt();
+    expect(prompt).toContain("Claims Substantiation Skill");
+  });
+
+  it("prompt includes Creative Territory Skill (via skill composition)", async () => {
+    const prompt = await loadExecutionPlanPrompt();
+    expect(prompt).toContain("Creative Territory Skill");
   });
 });
 
@@ -109,5 +119,75 @@ describe("proof integrity guardrail – execution plan validation", () => {
     });
 
     expect(issues).toHaveLength(0);
+  });
+});
+
+describe("hasBlockingProofIntegrityIssues helper", () => {
+  it("returns true when there are error-severity issues", () => {
+    const issues = [{ field: "assetList", severity: "error" as const, message: "Unsupported proof." }];
+    expect(hasBlockingProofIntegrityIssues(issues)).toBe(true);
+  });
+
+  it("returns false for warning-only issues", () => {
+    const issues = [{ field: "assetList", severity: "warning" as const, message: "Minor concern." }];
+    expect(hasBlockingProofIntegrityIssues(issues)).toBe(false);
+  });
+
+  it("returns false for empty issues array", () => {
+    expect(hasBlockingProofIntegrityIssues([])).toBe(false);
+  });
+});
+
+describe("mock execution plan – proof integrity", () => {
+  it("mock execution plan passes proof integrity with mock brief", () => {
+    const mockRun = buildMockCompletedCampaignRun("route-quiet-itinerary");
+    const plan = mockRun.executionPlan;
+    if (!plan) throw new Error("Mock plan missing");
+
+    const issues = validateProofIntegrity({
+      normalizedBrief: MOCK_BRIEF,
+      routes: MOCK_ROUTES.filter((r) => r.id === "route-quiet-itinerary"),
+      executionPlan: plan,
+    });
+
+    expect(hasBlockingProofIntegrityIssues(issues)).toBe(false);
+  });
+
+  it("all mock routes pass proof integrity with mock brief", () => {
+    const issues = validateProofIntegrity({
+      normalizedBrief: MOCK_BRIEF,
+      routes: MOCK_ROUTES,
+    });
+    expect(hasBlockingProofIntegrityIssues(issues)).toBe(false);
+  });
+
+  it("brief with explicit customer proof allows testimonial language", () => {
+    const briefWithProof = {
+      ...MOCK_BRIEF,
+      brandDescription: "Brand with existing customer testimonials and verified reviews.",
+    };
+    const issues = validateProofIntegrity({
+      normalizedBrief: briefWithProof,
+      executionPlan: {
+        selectedRouteId: "route-test",
+        planTitle: "Test",
+        strategicSummary: "Video series with real customer testimonials.",
+        assumptions: [],
+        launchPhases: [{ phase: "Launch", objective: "Sales", timing: "Week 1", keyActions: ["Go live"], deliverables: ["Campaign"] }],
+        channelPlan: [{ channel: "Instagram", role: "Primary", recommendedAssets: ["stills"] }],
+        assetList: ["real customer testimonials video series"],
+        copyExamples: ["Great"],
+        measurementPlan: [{ metric: "Sales", purpose: "Revenue" }],
+        heroVisualSystem: "Editorial.",
+        shootList: ["Shot 1"],
+        oohHeadlines: ["Headline"],
+        paidSocialHooks: ["Hook"],
+        landingPageBlocks: [{ block: "Hero", purpose: "Attention", content: "Copy" }],
+        legalSubstantiationChecklist: ["Review all"],
+        risksAndMitigations: [{ risk: "Risk", mitigation: "Fix" }],
+        nextActions: ["Start"],
+      },
+    });
+    expect(hasBlockingProofIntegrityIssues(issues)).toBe(false);
   });
 });

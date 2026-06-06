@@ -27,6 +27,10 @@ import { LlmJsonParseError, LlmSchemaValidationError } from "@/lib/llm/errors";
 import { validateSelectedRoute } from "@/lib/workflow/validate-selection";
 import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
 import { buildMockCompletedCampaignRun } from "@/lib/workflow/mock-campaign-run";
+import {
+  validateProofIntegrity,
+  hasBlockingProofIntegrityIssues,
+} from "@/lib/workflow/quality/validate-proof-integrity";
 
 const PROMPT_FILE = "generate_execution_plan.md";
 const PROMPT_VERSION = "generate_execution_plan.v1";
@@ -44,6 +48,7 @@ function generateExecutionPlanMock(
   routes: CampaignRoute[],
   selectedRouteId: string,
   runId: string,
+  normalizedBrief: NormalizedCampaignBrief,
 ): GenerateExecutionPlanResult {
   const mockRun = buildMockCompletedCampaignRun(selectedRouteId);
   const plan = mockRun.executionPlan;
@@ -57,6 +62,20 @@ function generateExecutionPlanMock(
 
   // Validate mock output against schema to catch fixture drift immediately.
   const parsed = campaignExecutionPlanOutputSchema.parse({ executionPlan: plan });
+
+  const proofIssues = validateProofIntegrity({
+    normalizedBrief,
+    routes: [routes.find((r) => r.id === selectedRouteId)!],
+    executionPlan: parsed.executionPlan,
+  });
+  if (hasBlockingProofIntegrityIssues(proofIssues)) {
+    throw new WorkflowValidationError(
+      "Mock execution plan contains unsupported customer proof language.",
+      proofIssues
+        .filter((i) => i.severity === "error")
+        .map((i) => ({ path: [i.field], message: i.message })),
+    );
+  }
 
   const traceEvent = createTraceEvent({
     runId,
@@ -136,17 +155,48 @@ async function generateExecutionPlanWithOpenAI(
     JSON.stringify(selectedPremortem ?? null, null, 2),
   ].join("\n");
 
+  const PROOF_REPAIR_INSTRUCTION = `
+IMPORTANT CORRECTION: The previous response contained unsupported customer proof language.
+Do not imply that real customer testimonials, user-generated content (UGC), customer names and photos,
+satisfied subscriber quotes, or verified customer reviews exist unless the brief explicitly provides them.
+Replace any such language with:
+- "testimonial-style creative" instead of "real customer testimonials"
+- "scenario-based creative" instead of "user-generated content"
+- "customer proof if available" or "validated testimonials if available" as qualifiers
+Re-generate the full execution plan JSON with this correction applied.`;
+
   const startMs = Date.now();
   let lastError: unknown;
+  let currentPrompt = prompt;
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const result = await generateJson({
-        prompt,
+        prompt: currentPrompt,
         schema: campaignExecutionPlanOutputSchema,
         model: env.openaiModel,
         timeoutMs: OPENAI_TIMEOUT_MS,
       });
+
+      const proofIssues = validateProofIntegrity({
+        normalizedBrief,
+        routes: [selectedRoute!],
+        executionPlan: result.data.executionPlan,
+      });
+
+      if (hasBlockingProofIntegrityIssues(proofIssues) && attempt === 1) {
+        currentPrompt = [currentPrompt, PROOF_REPAIR_INSTRUCTION].join("\n");
+        continue;
+      }
+
+      if (hasBlockingProofIntegrityIssues(proofIssues) && attempt === 2) {
+        throw new WorkflowValidationError(
+          "Execution plan contains unsupported customer proof language after retry.",
+          proofIssues
+            .filter((i) => i.severity === "error")
+            .map((i) => ({ path: [i.field], message: i.message })),
+        );
+      }
 
       const durationMs = Date.now() - startMs;
       const traceEvent = createTraceEvent({
@@ -172,6 +222,7 @@ async function generateExecutionPlanWithOpenAI(
 
       return { executionPlan: result.data.executionPlan, traceEvent };
     } catch (err) {
+      if (err instanceof WorkflowValidationError) throw err;
       lastError = err;
       const isRetryable =
         err instanceof LlmJsonParseError ||
@@ -222,7 +273,7 @@ export async function generateExecutionPlanStage(input: {
   validateSelectedRoute({ selectedRouteId: input.selectedRouteId, routes: input.routes });
 
   if (env.provider === "mock") {
-    return generateExecutionPlanMock(input.routes, input.selectedRouteId, runId);
+    return generateExecutionPlanMock(input.routes, input.selectedRouteId, runId, input.normalizedBrief);
   }
 
   return generateExecutionPlanWithOpenAI({ ...input, runId });

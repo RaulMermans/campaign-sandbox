@@ -24,17 +24,25 @@ export async function POST(request: Request): Promise<Response> {
 
   const result = await extractBriefText(file);
 
-  if (result.fileType === "unsupported") {
+  if (result.errorCode === "FILE_TOO_LARGE") {
     return NextResponse.json(
-      { error: "Unsupported file type. Upload a PDF, PPTX, or TXT file.", warnings: result.warnings },
+      { error: "File is too large. Maximum upload size is 15MB.", code: "FILE_TOO_LARGE" },
+      { status: 413 },
+    );
+  }
+
+  if (result.errorCode === "UNSUPPORTED_FILE_TYPE") {
+    return NextResponse.json(
+      { error: "Unsupported file type. Upload PDF, PPTX, or TXT.", code: "UNSUPPORTED_FILE_TYPE" },
       { status: 400 },
     );
   }
 
-  if (!result.extractedText) {
+  if (result.errorCode === "EMPTY_EXTRACTION") {
     return NextResponse.json(
       {
-        error: "No text could be extracted from this file.",
+        error: "No extractable text found. OCR is not supported in v1.",
+        code: "EMPTY_EXTRACTION",
         warnings: result.warnings,
         fileName: result.fileName,
         fileType: result.fileType,

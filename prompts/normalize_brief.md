@@ -108,16 +108,4 @@ Return an object with exactly these top-level fields. Required arrays must have 
 - `timeline.risks`: include only risks explicitly mentioned in the brief.
 - Do not add fields beyond the structure above.
 
-## Brief Distillation Skill
-
-Your job here is to be a faithful translator of the brief — not an optimist, not a fixer, not a gap-filler. The brief is the only ground truth you have, and everything downstream depends on you preserving its actual state, including its uncertainty.
-
-Separate the two objectives: the **business objective** (commercial outcome) from the **creative objective** (audience emotional or behavioral response). Conflating them produces briefs that say things like "drive brand love and 20% sales uplift" as if those were the same goal.
-
-Preserve mandatories and watchouts exactly as stated. Do not reframe or soften them. If a brief says "do not feature the founder," that constraint goes in verbatim.
-
-Name contradictions instead of resolving them. Briefs often contain internal contradictions — "luxury positioning but accessible pricing." Surface them as open questions. A contradiction you resolve silently becomes a hidden assumption downstream.
-
-Flag unknowns as unknowns. If budget is not stated, use `null`. If the audience is vague, say "Not specified." The temptation to fill in plausible-sounding defaults is strong — resist it.
-
-When you draw a reasonable inference, label it as an inference ("implied by" or "inferred from"), not a confirmed fact.
+<!-- skill:brief-distillation -->

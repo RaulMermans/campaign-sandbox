@@ -61,29 +61,9 @@ Return exactly this JSON shape:
 
 All string arrays must have at least one item. Do not add extra fields.
 
-## Cultural Strategy Skill
+<!-- skill:cultural-strategy -->
 
-Ground each route in a specific cultural behavior shift, not a demographic generalization. Identify the category clichés this audience is tired of and ensure routes actively flee them. Name the audience identity signal each route activates.
-
-Avoid: elevated, sophisticated, curated, effortless, bespoke, artisanal, intentional, mindful, premium, luxurious (unless paired with something concrete and specific).
-
-## Creative Territory Skill
-
-Route names must be ownable and specific to this brand and territory.
-
-**Forbidden generic names** — do not use these or any structural equivalent:
-- Effortless Elegance, Urban Escape, Calm Curation, Premium Ritual, Simple Choice
-- Elevated [Category], [Brand] Moments, The [Adjective] Journey, The Art of [X]
-
-Every route must define all five of these:
-
-1. **Enemy** — the specific attitude, behavior, or category convention the route rejects (not a competitor brand)
-2. **Proof mechanism** — why the route is believable; a specific execution choice, not a brand value
-3. **Visual world** — concrete physical descriptions: locations, lighting, props, composition. Not mood words.
-4. **Channel behavior** — how the creative idea moves through media in a way that fits the format
-5. **Failure mode** — exactly how this route collapses if execution is lazy, underfunded, or risk-averse
-
-The `killerLine` must be poster-ready and email-subject-ready. Test it: could another brand in the category say the same line without it feeling wrong? If yes, it is not specific enough.
+<!-- skill:creative-territory -->
 
 ## Inputs
 
