@@ -84,6 +84,18 @@ export function renderMarkdownReport(report: CampaignReport): string {
   sections.push(bullets(report.avoid));
   sections.push("");
 
+  // Decision Summary — near top for client-ready navigation
+  sections.push(divider());
+  sections.push(heading(2, "Decision Summary"));
+  const ds = report.decisionSummary;
+  sections.push(`**Recommended route:** ${ds.recommendedRouteName}`);
+  sections.push(`**Why it leads:** ${ds.whyItWins}`);
+  if (ds.runnerUpStrength) sections.push(`**Runner-up strength:** ${ds.runnerUpStrength}`);
+  sections.push(`**Biggest tradeoff:** ${ds.biggestTradeoff}`);
+  sections.push(`**Primary risk type:** ${ds.riskType}`);
+  if (ds.closeScoreNotice) sections.push(`**Note:** ${ds.closeScoreNotice}`);
+  sections.push("");
+
   // Recommended Route
   sections.push(divider());
   sections.push(heading(2, "Recommended Route"));
@@ -132,10 +144,23 @@ export function renderMarkdownReport(report: CampaignReport): string {
     sections.push("");
   }
 
-  // Route Comparison
+  // Route Comparison with risk taxonomy
   sections.push(divider());
   sections.push(heading(2, "Route Comparison"));
+
+  // Comparison table with risk type
+  sections.push("| Route | Score | Role | Risk Type | Severity |");
+  sections.push("| --- | --- | --- | --- | --- |");
   for (const route of report.routes) {
+    const taxonomy = report.riskTaxonomy.find((t) => t.routeId === route.id);
+    sections.push(
+      `| ${route.name} | ${route.score?.toFixed(1) ?? "—"} | ${route.strategicRole} | ${taxonomy?.primaryRiskType ?? "—"} | ${taxonomy?.severity ?? "—"} |`,
+    );
+  }
+  sections.push("");
+
+  for (const route of report.routes) {
+    const taxonomy = report.riskTaxonomy.find((t) => t.routeId === route.id);
     sections.push(`### ${route.name}${scoreBar(route.score)}`);
     sections.push(`_${route.strategicRole}${route.rankingLabel ? ` · ${route.rankingLabel}` : ""}_`);
     sections.push(`**Killer line:** ${route.killerLine}`);
@@ -146,17 +171,39 @@ export function renderMarkdownReport(report: CampaignReport): string {
     if (route.keyRisks.length > 0) {
       sections.push(`**Key risks:** ${route.keyRisks.join("; ")}`);
     }
+    if (taxonomy) {
+      sections.push(`**Risk:** ${taxonomy.severity} ${taxonomy.primaryRiskType} — ${taxonomy.explanation}`);
+    }
     sections.push("");
   }
   sections.push(heading(3, "Comparison notes"));
   sections.push(bullets(report.comparisonDecisionNotes));
   sections.push("");
 
-  // Synthetic Audience Signals
+  // Synthetic Audience Signals — route summaries first, then persona detail
   sections.push(divider());
   sections.push(heading(2, "Synthetic Audience Signals"));
   sections.push(`> **${report.syntheticCaveat}**`);
   sections.push("");
+
+  // Route-level summaries
+  if (report.routeSimulationSummaries.length > 0) {
+    sections.push(heading(3, "Route-level synthesis"));
+    sections.push("| Route | Resonance | Conversion | Strongest persona | Main objection |");
+    sections.push("| --- | --- | --- | --- | --- |");
+    for (const rs of report.routeSimulationSummaries) {
+      sections.push(
+        `| ${rs.routeName} | ${rs.averageResonance.toFixed(1)} | ${rs.averageConversion.toFixed(1)} | ${rs.strongestPersona} | ${rs.mainObjection} |`,
+      );
+    }
+    sections.push("");
+    for (const rs of report.routeSimulationSummaries) {
+      sections.push(`**${rs.routeName}:** ${rs.decisionTakeaway}`);
+    }
+    sections.push("");
+  }
+
+  sections.push(heading(3, "Persona reactions"));
   for (const sim of report.simulations) {
     sections.push(`### ${sim.personaName} on ${sim.routeName}`);
     sections.push(`_Resonance: ${sim.resonanceScore.toFixed(1)} · Conversion: ${sim.conversionIntent.toFixed(1)}_`);

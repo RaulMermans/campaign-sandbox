@@ -81,6 +81,31 @@ Even when all eight implemented stages run (six with a real LLM provider, two de
 - `sampleCopy` must be campaign-safe copy examples, not guaranteed claims.
 - Every route must include at least one risk (enforced by schema and prompt).
 
+## Route Quality Gate v1 safety rules
+
+- The quality gate is deterministic. It does not call an LLM and does not produce its own output — it only validates LLM-generated routes against structural quality signals.
+- The gate checks: forbidden generic name patterns, motivational-platitude killer lines, insufficient visual world (fewer than 2 concrete entries), unsupported proof claims (fake testimonials without safe qualifiers such as "if available" or "testimonial-style creative"), and vague failure modes.
+- Issues are typed (`RouteQualityIssue`): field, severity (`warning` | `error`), message. Raw model output is never propagated.
+- Blocking errors trigger a single repair retry using a focused prompt that lists only the specific issues. The LLM is not given back the original raw response — only the validated structured output plus the issue list.
+- After the retry, surviving quality warnings are preserved in `qualityWarnings` on the result for caller awareness. They do not block workflow execution.
+- The gate never manufactures certainty: warnings reflect structural signals only, not assertions about market fit or audience response.
+
+## Proof Integrity Guardrail safety rules
+
+- The proof integrity guardrail is deterministic. It does not call an LLM.
+- It checks route `proofMechanism`, `activationIdeas`, `assetIdeas`, and execution plan `strategicSummary`, `launchPhases`, `channelPlan`, and `assetList` for unsupported claims that imply real customer testimonials, user-generated content, or verified customer reviews.
+- It is brief-aware: if the brief explicitly provides evidence of customer proof (testimonials, case studies, UGC, customer reviews), all proof-related language is permitted.
+- Safe language qualifiers that allow proof-adjacent copy: `"testimonial-style creative"`, `"if available"`, `"customer proof if available"`.
+- Issues are typed (`ProofIntegrityIssue`): field, severity (`error`), message. Raw model output is never propagated.
+- The guardrail is an advisory layer in v1 — it flags issues for the system and logs them as trace-compatible data, but does not block plan generation automatically. It is used to validate prompt compliance and catch regression.
+
+## Deterministic derivation safety rules (`buildDecisionSummary`, `deriveRiskTaxonomy`, `deriveRouteSimulationSummaries`)
+
+- All three derivations are deterministic and do not call an LLM.
+- `buildDecisionSummary`: the recommended route is derived from score ranking only — no LLM judgment. `whyItWins`, `runnerUpStrength`, and `biggestTradeoff` are derived from comparison summary text and premortem notes, not invented. Risk type is classified from structural signals (feasibility score, premortem keywords, distinctiveness/conversion gap). The `closeScoreNotice` is shown when the top-two score gap is ≤ 0.2 to prevent false certainty in close decisions.
+- `deriveRiskTaxonomy`: risk types are structural labels (Execution risk, Proof risk, Conversion risk, Channel risk, Brand dilution risk, Creative risk) derived from scores and premortem text. They are not predictions of campaign failure or success probability.
+- `deriveRouteSimulationSummaries`: averages are arithmetic means of bounded 1–5 scores from synthetic simulations. They are not conversion rates, not real audience data, and must not be presented as market research. Safe N/A values are returned for routes with no simulations rather than crashing or fabricating scores.
+
 ## `build_personas` safety rules
 
 - The stage consumes validated `NormalizedCampaignBrief`, `StrategicTension`, and `CampaignRoute[]` only — never raw brief text.
@@ -177,6 +202,20 @@ Even when all eight implemented stages run (six with a real LLM provider, two de
 - Output validated against `campaignExecutionPlanOutputSchema` before returning.
 - Retries once on `LlmJsonParseError` or `LlmSchemaValidationError`. Does not retry on provider or network errors.
 - Never returns unvalidated model output.
+
+## Skill layer v2 safety rules
+
+- Skill content is plain text injected into prompt files via `<!-- skill:name -->` marker replacement at runtime (`composePrompt()`).
+- Skills are bounded prompt instructions — not tool calls, not memory, not multi-step agent loops, not autonomous decision-making.
+- Unresolved markers throw in non-production environments so missing skills are caught immediately. In production, unresolved markers are left intact rather than silently injecting empty content.
+- Skill content must not instruct the model to act independently, call external services, or bypass the standard schema + validation path.
+- The composed prompt is never returned to the client and is never logged in full in production telemetry.
+
+## `generate_execution_plan` proof integrity rules
+
+- The execution plan prompt explicitly prohibits implying that real customer testimonials, user-generated content, satisfied subscriber quotes, or verified customer reviews exist unless the brief explicitly provides them.
+- Permitted language: `"testimonial-style creative"` (style reference, not claim), `"customer proof if available"` (conditioned), `"scenario-based creative"` (fictional framing).
+- The `validateProofIntegrity` guardrail checks execution plan output fields (`strategicSummary`, `launchPhases`, `channelPlan`, `assetList`) for violations. Issues are returned as typed `ProofIntegrityIssue` objects — raw plan text is never propagated as the error payload.
 
 ## Future LLM integrations
 

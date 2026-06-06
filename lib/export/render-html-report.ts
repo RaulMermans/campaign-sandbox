@@ -188,6 +188,21 @@ export function renderHtmlReport(report: CampaignReport): string {
     ${subsection("Avoid", ul(report.avoid))}
   `));
 
+  // Decision Summary — cockpit view
+  const ds = report.decisionSummary;
+  const decisionRows = [
+    ["Recommended route", ds.recommendedRouteName],
+    ["Why it leads", ds.whyItWins],
+    ...(ds.runnerUpStrength ? [["Runner-up strength", ds.runnerUpStrength]] : []),
+    ["Biggest tradeoff", ds.biggestTradeoff],
+    ["Primary risk type", ds.riskType],
+    ...(ds.closeScoreNotice ? [["Score note", ds.closeScoreNotice]] : []),
+  ];
+  const decisionTable = `<table class="summary-table"><tbody>
+    ${decisionRows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("\n    ")}
+  </tbody></table>`;
+  parts.push(section("Decision Summary", decisionTable));
+
   // Recommended Route
   const recommendedRoute = report.routes.find((r) => r.id === report.recommendedRouteId);
   if (recommendedRoute) {
@@ -227,27 +242,50 @@ export function renderHtmlReport(report: CampaignReport): string {
     }
   }
 
-  // Route Comparison
-  const routeComparison = report.routes.map((route) => `
+  // Route Comparison with risk taxonomy
+  const routeComparison = report.routes.map((route) => {
+    const taxonomy = report.riskTaxonomy.find((t) => t.routeId === route.id);
+    const riskBadge = taxonomy
+      ? `<span style="font-size:0.75rem;font-weight:600;padding:2px 6px;border-radius:3px;background:#f5f5f5;color:#444;">${esc(taxonomy.severity)} · ${esc(taxonomy.primaryRiskType)}</span>`
+      : "";
+    return `
     <div style="border:1px solid #e5e5e5;border-radius:6px;padding:14px;margin-bottom:10px;">
       <h3 style="margin:0 0 4px;">${esc(route.name)} ${scoreBar(route.score)}</h3>
-      <p style="margin:0 0 8px;">
+      <p style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
         <span class="role-badge role-${esc(route.strategicRole)}">${esc(route.strategicRole)}</span>
         ${route.rankingLabel ? `<span class="ranking-label">${esc(route.rankingLabel)}</span>` : ""}
+        ${riskBadge}
       </p>
       <p class="killer-line" style="font-size:0.9rem;">&ldquo;${esc(route.killerLine)}&rdquo;</p>
       ${kv("Enemy", route.enemy)}
       ${route.keyStrengths.length > 0 ? `<p><span class="label">Strengths</span>${esc(route.keyStrengths.join("; "))}</p>` : ""}
       ${route.keyRisks.length > 0 ? `<p><span class="label">Key risks</span>${esc(route.keyRisks.join("; "))}</p>` : ""}
+      ${taxonomy ? `<p><span class="label">Risk note</span><em>${esc(taxonomy.explanation)}</em></p>` : ""}
     </div>
-  `).join("");
+  `;
+  }).join("");
 
   parts.push(section("Route Comparison", `
     ${routeComparison}
     ${subsection("Comparison notes", ul(report.comparisonDecisionNotes))}
   `));
 
-  // Synthetic Audience Signals
+  // Synthetic Audience Signals — route summaries first
+  const routeSimCards = report.routeSimulationSummaries.map((rs) => `
+    <div style="border:1px solid #e5e5e5;border-radius:6px;padding:12px;margin-bottom:8px;">
+      <p style="margin:0 0 6px;font-weight:600;font-size:0.9rem;">${esc(rs.routeName)}</p>
+      <div class="sim-scores" style="margin-bottom:8px;">
+        <span>Resonance: ${rs.averageResonance.toFixed(1)}</span>
+        <span>Conversion: ${rs.averageConversion.toFixed(1)}</span>
+        <span>Email: ${rs.averageEmailCapture.toFixed(1)}</span>
+      </div>
+      <p><span class="label">Strongest persona</span>${esc(rs.strongestPersona)}</p>
+      <p><span class="label">Main objection</span>${esc(rs.mainObjection)}</p>
+      <p><span class="label">Best CTA</span>${esc(rs.bestCTA)}</p>
+      <p style="margin-top:8px;font-size:0.85rem;color:#555;font-style:italic;">${esc(rs.decisionTakeaway)}</p>
+    </div>
+  `).join("");
+
   const simCards = report.simulations.map((sim) => `
     <div class="sim-card">
       <p><strong>${esc(sim.personaName)}</strong> on <strong>${esc(sim.routeName)}</strong></p>
@@ -264,7 +302,8 @@ export function renderHtmlReport(report: CampaignReport): string {
 
   parts.push(section("Synthetic Audience Signals", `
     <div class="caveat-box">${esc(report.syntheticCaveat)}</div>
-    ${simCards}
+    ${routeSimCards.length > 0 ? subsection("Route-level synthesis", routeSimCards) : ""}
+    ${subsection("Persona reactions", simCards)}
   `));
 
   // Pre-mortem Risks

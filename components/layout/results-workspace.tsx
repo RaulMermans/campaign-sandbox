@@ -1,17 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { SectionNav } from "@/components/run/section-nav";
 import { RunMetadataPanel } from "@/components/run/run-metadata-panel";
 import { ExecutiveSummaryPanel } from "@/components/run/executive-summary-panel";
+import { DecisionCockpit } from "@/components/run/decision-cockpit";
 import { NormalizedBriefPanel } from "@/components/brief/normalized-brief-panel";
 import { CampaignRouteCard } from "@/components/routes/campaign-route-card";
 import { RouteComparisonTable } from "@/components/routes/route-comparison-table";
+import { ComparisonExplanation } from "@/components/routes/comparison-explanation";
 import { PersonaSimulationPanel } from "@/components/simulation/persona-simulation-panel";
+import { RouteSimulationSummaryPanel } from "@/components/personas/route-simulation-summary-panel";
 import { CollapsibleSection } from "@/components/run/collapsible-section";
 import { ExecutionPlanPanel } from "@/components/run/execution-plan-panel";
 import { ExportPanel } from "@/components/run/export-panel";
 import { TraceTimeline } from "@/components/trace/trace-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buildDecisionSummary } from "@/lib/workflow/build-decision-summary";
+import { deriveRouteSimulationSummaries } from "@/lib/workflow/derive-route-simulation-summaries";
+import { deriveRiskTaxonomy } from "@/lib/workflow/derive-risk-taxonomy";
 import type {
   CampaignExecutionPlan,
   CampaignExportInput,
@@ -74,6 +81,8 @@ export function ResultsWorkspace({
   executionPlan,
   executionTraceEvent,
 }: ResultsWorkspaceProps) {
+  const [personasExpanded, setPersonasExpanded] = useState(false);
+
   const scoreRank = [...run.scores]
     .sort((a, b) => b.weightedTotal - a.weightedTotal)
     .reduce((map, s, i) => {
@@ -105,6 +114,27 @@ export function ResultsWorkspace({
       }
     : null;
 
+  // Deterministic derived data
+  const decisionSummary = buildDecisionSummary({
+    routes: run.routes,
+    scores: run.scores,
+    comparison: run.comparison,
+    premortemReview: run.premortemReview,
+  });
+
+  const simulationSummaries = deriveRouteSimulationSummaries({
+    routes: run.routes,
+    personas: run.personas,
+    simulations: run.simulations,
+  });
+
+  const riskTaxonomy = deriveRiskTaxonomy({
+    routes: run.routes,
+    scores: run.scores,
+    comparison: run.comparison,
+    premortemReview: run.premortemReview,
+  });
+
   return (
     <div className="mx-auto max-w-7xl px-5 pb-16 pt-6 md:px-8">
       {isRunning ? (
@@ -129,20 +159,29 @@ export function ResultsWorkspace({
           comparison={run.comparison}
         />
 
+        {/* Decision Cockpit — top of results, deterministic */}
         <section id="summary">
-          <ExecutiveSummaryPanel
-            routes={run.routes}
-            comparison={run.comparison}
-            premortemReview={run.premortemReview}
-          />
+          <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+            <ExecutiveSummaryPanel
+              routes={run.routes}
+              comparison={run.comparison}
+              premortemReview={run.premortemReview}
+            />
+            <DecisionCockpit
+              summary={decisionSummary}
+              selectedRouteId={selectedRouteId}
+              exportReady={exportInput !== null}
+            />
+          </div>
         </section>
 
         <section id="brief">
           <NormalizedBriefPanel brief={run.normalizedBrief} tension={run.strategicTension} />
         </section>
 
+        {/* Route Territories */}
         <section id="routes">
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="workspace-wide grid gap-4 lg:grid-cols-3">
             {run.routes.map((route) => (
               <CampaignRouteCard
                 key={route.id}
@@ -155,26 +194,37 @@ export function ResultsWorkspace({
           </div>
         </section>
 
+        {/* Audience Simulations — route summaries first, persona cards collapsible */}
         <CollapsibleSection
           id="simulations"
           title={`Audience Simulations (${run.simulations.length})`}
-          preview={`${run.personas.length} synthetic personas × ${run.routes.length} routes. Expand to review individual reactions.`}
+          preview={`${run.personas.length} synthetic personas × ${run.routes.length} routes. Route-level synthesis shown first.`}
         >
           <div className="p-1">
-            <PersonaSimulationPanel
-              personas={run.personas}
-              simulations={run.simulations}
-              routes={run.routes}
+            <RouteSimulationSummaryPanel
+              summaries={simulationSummaries}
+              onExpandPersonas={() => setPersonasExpanded((p) => !p)}
+              personasExpanded={personasExpanded}
             />
+            {personasExpanded ? (
+              <div className="mt-4">
+                <PersonaSimulationPanel
+                  personas={run.personas}
+                  simulations={run.simulations}
+                  routes={run.routes}
+                />
+              </div>
+            ) : null}
           </div>
         </CollapsibleSection>
 
+        {/* Pre-mortem Risk Review — top 3 default, all expandable */}
         <CollapsibleSection
           id="risks"
           title="Pre-mortem Risk Review"
           preview={run.premortemReview.summary}
         >
-          <div className="p-5">
+          <div className="workspace-readable p-5">
             <p className="mb-4 text-sm font-medium text-stone-950">
               {run.premortemReview.summary}
             </p>
@@ -212,28 +262,50 @@ export function ResultsWorkspace({
               </div>
             ) : null}
 
-            <div className="grid gap-3 md:grid-cols-3">
-              {run.premortemReview.routeRisks.map((routeRisk) => (
-                <div
-                  key={routeRisk.routeId}
-                  className="rounded-md border border-stone-200 p-4 text-sm leading-6 text-stone-700"
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
-                    {run.routes.find((r) => r.id === routeRisk.routeId)?.name ?? routeRisk.routeId}
-                  </p>
-                  <ul className="mt-2 grid gap-1">
-                    {routeRisk.risks.map((risk) => (
-                      <li key={risk} className="flex gap-2">
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" />
-                        {risk}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-2 text-xs text-stone-400">
-                    Mitigation: {routeRisk.mitigations.join("; ")}
-                  </p>
-                </div>
-              ))}
+            {/* Route-specific risks with risk taxonomy badges */}
+            <div className="workspace-wide grid gap-3 md:grid-cols-3">
+              {run.premortemReview.routeRisks.map((routeRisk) => {
+                const taxonomy = riskTaxonomy.find((t) => t.routeId === routeRisk.routeId);
+                return (
+                  <div
+                    key={routeRisk.routeId}
+                    className="rounded-md border border-stone-200 p-4 text-sm leading-6 text-stone-700"
+                  >
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
+                        {run.routes.find((r) => r.id === routeRisk.routeId)?.name ?? routeRisk.routeId}
+                      </p>
+                      {taxonomy ? (
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
+                            taxonomy.severity === "High"
+                              ? "bg-red-100 text-red-700"
+                              : taxonomy.severity === "Low"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {taxonomy.severity} · {taxonomy.primaryRiskType}
+                        </span>
+                      ) : null}
+                    </div>
+                    <ul className="grid gap-1">
+                      {routeRisk.risks.map((risk) => (
+                        <li key={risk} className="flex gap-2">
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" />
+                          {risk}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-xs text-stone-400">
+                      Mitigation: {routeRisk.mitigations.join("; ")}
+                    </p>
+                    {taxonomy ? (
+                      <p className="mt-2 text-xs italic text-stone-400">{taxonomy.explanation}</p>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
 
             {run.premortemReview.overallRisks.length > 0 ? (
@@ -254,8 +326,12 @@ export function ResultsWorkspace({
           </div>
         </CollapsibleSection>
 
+        {/* Comparison + Explanation */}
         <section id="comparison">
-          <RouteComparisonTable matrix={run.comparison} />
+          <div className="grid gap-4">
+            <RouteComparisonTable matrix={run.comparison} riskTaxonomy={riskTaxonomy} />
+            <ComparisonExplanation summary={decisionSummary} />
+          </div>
         </section>
 
         <section id="selection">
@@ -335,7 +411,7 @@ export function ResultsWorkspace({
               <CardHeader>
                 <CardTitle>Execution Plan</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="workspace-readable">
                 <ExecutionPlanPanel plan={executionPlan} />
               </CardContent>
             </Card>

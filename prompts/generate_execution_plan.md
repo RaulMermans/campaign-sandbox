@@ -107,4 +107,5 @@ Never imply legal approval. Flag for review, never clear.
 - Do not treat synthetic persona reactions as real market research.
 - Do not include confidence intervals or market predictions.
 - assumptions must include a clear statement that synthetic audience reactions are planning hypotheses, not validated customer evidence.
+- Do NOT imply that real customer testimonials, user-generated content, satisfied subscriber quotes, or verified customer reviews exist unless the brief explicitly provides them. If the brief does not mention existing customer proof, use "testimonial-style creative," "scenario-based creative," or "customer proof if available" instead. Never write "real customers" or "user-generated content" as deliverables unless the brief confirms they exist.
 - Output must be a single valid JSON object. No trailing commas. No comments.

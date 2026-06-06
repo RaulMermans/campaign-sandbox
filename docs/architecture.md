@@ -8,12 +8,15 @@ Deterministic code owns orchestration, schema validation, scoring weights, trace
 
 ```
 Deterministic intake/upload
-→ extracted/editable brief (server-side text extraction, no file storage)
-→ bounded LLM workflow with skill-injected prompts
-→ deterministic schema validation
-→ human route selection (required)
-→ bounded execution plan generation
-→ deterministic export (Markdown / HTML)
+→ editable extracted brief
+→ bounded LLM workflow with composed skill prompts
+→ Zod validation
+→ deterministic quality gates (route quality, proof integrity)
+→ one bounded retry when quality fails
+→ deterministic scoring/comparison/summaries
+→ human route selection
+→ bounded execution plan
+→ deterministic export
 ```
 
 ## Intake Mode vs Results Workspace Mode
@@ -116,7 +119,8 @@ All API routes catch typed errors and return sanitized responses. Raw provider o
 - Routes are strategic options for human decision-making, not recommendations.
 - Output is validated with `campaignRoutesOutputSchema` (Zod wrapper) before returning.
 - `campaignRoutesOutputSchema` enforces required strategic roles (`safest`, `boldest`, `conversion`) and unique route IDs via `.superRefine()`.
-- Retries once on JSON parse or schema validation failure.
+- **Route Quality Gate v1:** After schema validation, routes are validated by `validateRouteQuality()`. If blocking issues exist (generic name, vague killer line, insufficient visual world, fake testimonial proof), the stage retries once with a focused repair prompt. After retry, warnings are preserved in the trace event. Raw model output is never exposed.
+- Retries: once on JSON/schema failure + once on quality gate failure (up to 3 total attempts).
 - Prompt version: `generate_campaign_routes.v1`.
 
 ## `build_personas` stage notes

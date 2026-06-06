@@ -6,6 +6,8 @@
 
 `generate_campaign_routes` creates 3–5 meaningfully distinct routes. The `campaignRoutesOutputSchema` enforces at least one `safest`, `boldest`, and `conversion` route and unique route IDs — these constraints are validated at the schema layer, not just the prompt. Routes are strategic options for human evaluation, not performance predictions. This stage is server-side only, consuming validated `NormalizedCampaignBrief` and `StrategicTension` inputs. Available as a real bounded LLM stage or mock.
 
+**Route Quality Gate v1:** After successful schema validation, routes are checked by `validateRouteQuality` (a deterministic validator). Issues are typed as `RouteQualityIssue` with `field`, `severity` (`"warning"` or `"error"`), and `message`. If blocking errors are found (`hasBlockingRouteQualityIssues` returns true), a focused repair prompt is appended listing the specific issues, and the LLM is retried once. Total maximum attempts: 3 (1 normal + 1 schema retry + 1 quality retry). Quality warnings surviving the retry are preserved in `GenerateCampaignRoutesResult.qualityWarnings`. The raw model output is never exposed; only typed `RouteQualityIssue` objects propagate. Checked conditions: generic route names (forbidden list + adjective+noun patterns), motivational-platitude killer lines, insufficient visual world (fewer than 2 entries with concrete imagery keywords), unsupported proof claims (fake testimonials without safe qualifiers), and vague failure modes.
+
 `build_personas` creates 3–6 synthetic personas grounded in the normalized brief, strategic tension, and campaign routes. Personas are synthetic audience hypotheses for planning purposes only — they are not real research, do not predict behavior, and must not be presented as real data or used for discriminatory targeting. This stage is server-side only, consuming all three validated upstream inputs. Available as a real bounded LLM stage or mock.
 
 `simulate_reactions` generates one synthetic reaction for every route/persona pair. The output is a full matrix: R routes × P personas = R×P simulations. Each simulation includes a likely reaction, positives, objections, a quoted reaction, bounded strategy scores (1–5), a confidence level, and a caveat that must explicitly label the reaction as synthetic. Simulations are planning devices — they are not real audience research, do not predict real behavior, and must never be used as market validation, survey data, or conversion evidence. Scores are qualitative estimates, not probabilities. This stage is server-side only, consuming validated normalizedBrief, strategicTension, routes, and personas. Available as a real bounded LLM stage or mock.
@@ -35,7 +37,21 @@ In both modes, all stages execute and all trace events are recorded. Fast-mode l
 
 If a brief does not specify a budget, the `NormalizedCampaignBrief.budget` field should be omitted or have `label: "Not specified"` and `null` for `min`/`max`. The UI displays `Not specified` in this case. Never output `0` as a placeholder for unknown budget.
 
-`export_artifact` is a deterministic (no LLM) export stage triggered after the execution plan is generated. It builds a normalized `CampaignReport` model from all stage outputs, then renders it as Markdown or HTML. No PDF, no persistence, no LLM. API: `POST /api/campaign/export`. The report includes synthetic-research caveats, legal/substantiation checklists, and route comparison win explanations. Scores remain bounded qualitative estimates (1–5) throughout the report.
+`export_artifact` is a deterministic (no LLM) export stage triggered after the execution plan is generated. It builds a normalized `CampaignReport` model from all stage outputs — including `DecisionSummary`, `RouteRiskTaxonomy[]`, and `RouteSimulationSummary[]` derived deterministically — then renders it as Markdown or HTML. No PDF, no persistence, no LLM. API: `POST /api/campaign/export`. The report includes a Decision Summary section, risk taxonomy per route, route-level simulation synthesis, synthetic-research caveats, legal/substantiation checklists, and route comparison win explanations. Scores remain bounded qualitative estimates (1–5) throughout the report.
+
+## Deterministic derivations (render-time, no LLM)
+
+These functions run at render time in the UI and during export. They have no LLM calls, no side effects, and are fully deterministic.
+
+**`buildDecisionSummary`** derives a `DecisionSummary` from route scores, comparison matrix, and pre-mortem review. Returns: `recommendedRouteId`, `recommendedRouteName`, `whyItWins` (from comparison summary + score gap), `runnerUpRouteId`, `runnerUpStrength` (from runner-up comparison row), `biggestTradeoff` (from comparison decision notes + premortem), `riskType` (one of: `Creative risk | Proof risk | Conversion risk | Channel risk | Execution risk | Brand dilution risk`), and optional `closeScoreNotice` when the top-two score gap is ≤ 0.2. Throws if no scores are provided or if `recommendedRouteId` references a missing route.
+
+**`deriveRiskTaxonomy`** produces one `RouteRiskTaxonomy` entry per route. Each entry has `routeId`, `severity` (`Low | Moderate | High`), `primaryRiskType`, and `explanation`. Classification priority: Execution risk (feasibility ≤ 3), Proof risk (risk text contains proof/testimonial/evidence keywords), Conversion risk (high distinctiveness but low conversion potential), Brand dilution risk (generic/bland signals or very low distinctiveness), Channel risk (channel/platform/distribution keywords), Creative risk (boldest role or high riskLevel — the default). Severity is derived from `riskLevel` or `riskAdjustedConfidence`.
+
+**`deriveRouteSimulationSummaries`** produces one `RouteSimulationSummary` per route. Each entry includes: `routeId`, `routeName`, `averageResonance`, `averageConversion`, `averageEmailCapture`, `strongestPersona`, `weakestPersona`, `mainObjection`, `actionTrigger`, `bestCTA`, `decisionTakeaway`. Routes with no simulations return safe empty/N/A values rather than throwing.
+
+## Skill Layer v2
+
+Prompts may include `<!-- skill:name -->` markers. At runtime, `composePrompt(promptName)` loads the prompt file and replaces each marker with the corresponding skill content from `SKILL_MAP` (`lib/prompts/compose-prompt.ts`). In non-production environments, unresolved markers after composition throw an error so missing skills are caught immediately. In production, unresolved markers are left intact rather than crashing. Skill content is bounded instructions injected into the prompt — not autonomous agent instructions, not tool calls, not multi-step loops.
 
 ## Stage table
 
@@ -43,12 +59,15 @@ If a brief does not specify a budget, the `NormalizedCampaignBrief.budget` field
 |---|---|---|
 | `normalize_brief` | real optional / structured outputs | OpenAI Structured Outputs with JSON schema |
 | `extract_strategic_tension` | real optional | Richer schema: audienceDesire, audienceResistance, brandProofChallenge, creativeTrap, tensionStatement |
-| `generate_campaign_routes` | real optional | Richer route schema: enemy, visualWorld, proofMechanism, channelFit, killerLine, failureMode |
+| `generate_campaign_routes` | real optional + quality gate | Route Quality Gate v1: deterministic post-validation, one repair retry on blocking issues; qualityWarnings propagated |
 | `build_personas` | real optional | Unchanged |
 | `simulate_reactions` | real optional | Decision-oriented fields: understoodMessage, mainObjection, actionTrigger, bestCTA |
 | `score_routes` | deterministic | Unchanged |
 | `premortem_review` | real optional | Extended with topFailureRisks (prioritised cross-route risk cards) |
 | `compare_routes` | deterministic | Ranking labels derived in UI; close-score explanation in comparison summary |
 | `human_selection` | local explicit user action | Unchanged |
-| `generate_execution_plan` | real optional | Production-specific plan: heroVisualSystem, shootList, oohHeadlines, paidSocialHooks, landingPageBlocks, legalSubstantiationChecklist |
-| `export_artifact` | deterministic Markdown/HTML | No LLM, no PDF, no persistence in v1 |
+| `generate_execution_plan` | real optional | Proof integrity guardrail in prompt; production-specific plan: heroVisualSystem, shootList, oohHeadlines, paidSocialHooks, landingPageBlocks, legalSubstantiationChecklist |
+| `export_artifact` | deterministic Markdown/HTML | Includes Decision Summary, risk taxonomy, simulation summaries; no LLM, no PDF, no persistence in v1 |
+| `buildDecisionSummary` | render-time deterministic | Derives recommended route, runner-up, tradeoff, risk type, close-score notice from scores + comparison + premortem |
+| `deriveRiskTaxonomy` | render-time deterministic | One typed risk entry per route (6 risk categories, 3 severity levels) |
+| `deriveRouteSimulationSummaries` | render-time deterministic | Route-level simulation averages, strongest/weakest persona, main objection, best CTA |

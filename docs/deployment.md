@@ -149,7 +149,7 @@ Do not use `NEXT_PUBLIC_` prefix for any of these variables. They are server-sid
 - **Comparison is decision support, not a prediction.** The `recommendedRouteId` is a scoring-based suggestion. Human selection is required before generating an execution plan.
 - **Human selection is explicit.** No execution plan is generated automatically. The user must click a route selection button and then click "Generate execution plan." The system recommendation is shown as guidance only.
 - **Execution plan generation is server-side only.** `POST /api/campaign/execution-plan` accepts a completed run plus `selectedRouteId`. No client-side LLM calls. No API keys exposed to the browser.
-- **Export is not implemented.** The `export_artifact` stage is not yet built.
+- **Export is deterministic Markdown/HTML only.** `POST /api/campaign/export` generates a `CampaignReport` including Decision Summary, risk taxonomy, and route simulation summaries. No PDF, no LLM, no persistence.
 - **No database, auth, or persistence.** Campaign runs and execution plans are held in React state only. Refreshing the page clears them.
 - **No PDF export in v1.** The export artifact boundary is a placeholder.
 - **No billing, no multi-tenant auth.** V1 is a demo-quality tool.
@@ -172,6 +172,12 @@ Server-side only (never exposed to the browser):
 - `lib/workflow/validate-route-scores.ts` — route score coverage validator
 - `lib/workflow/validate-premortem.ts` — premortem coverage validator
 - `lib/workflow/validate-comparison.ts` — comparison coverage validator
+- `lib/workflow/quality/validate-route-quality.ts` — Route Quality Gate v1 (deterministic, no LLM)
+- `lib/workflow/quality/validate-proof-integrity.ts` — Proof Integrity Guardrail (deterministic, no LLM)
+- `lib/workflow/build-decision-summary.ts` — Decision Summary derivation (deterministic)
+- `lib/workflow/derive-risk-taxonomy.ts` — Risk Taxonomy derivation (deterministic)
+- `lib/workflow/derive-route-simulation-summaries.ts` — Route Simulation Summaries derivation (deterministic)
+- `lib/prompts/compose-prompt.ts` — skill marker composition for prompts (server-side utility)
 - `app/api/campaign/run/route.ts` — full orchestration endpoint (homepage uses this)
 - `app/api/campaign/normalize/route.ts` — normalization API endpoint
 - `app/api/campaign/tension/route.ts` — tension API endpoint
@@ -181,6 +187,7 @@ Server-side only (never exposed to the browser):
 - `app/api/campaign/scores/route.ts` — deterministic scoring API endpoint
 - `app/api/campaign/premortem/route.ts` — premortem review API endpoint
 - `app/api/campaign/comparison/route.ts` — deterministic comparison API endpoint
+- `app/api/campaign/export/route.ts` — deterministic export API endpoint (no LLM)
 
 Client-safe (no secrets):
 
@@ -190,6 +197,8 @@ Client-safe (no secrets):
 - `lib/traces/` — trace event factory
 - All components in `components/`
 
-## Next deployment steps
+## Current limitations
 
-Human selection, execution plan generation, and export artifact remain not implemented. These require the human gate before final plan synthesis.
+- Human selection stores chosen route in React state only — no persistence across page reloads.
+- No PDF export in v1. Export is Markdown/HTML only.
+- No database, auth, or billing in v1.

@@ -7,6 +7,18 @@ import type {
   RouteScore,
 } from "@/lib/schemas/campaign";
 import type { TraceEvent } from "@/lib/schemas/trace";
+import {
+  buildDecisionSummary,
+  type DecisionSummary,
+} from "@/lib/workflow/build-decision-summary";
+import {
+  deriveRouteSimulationSummaries,
+  type RouteSimulationSummary,
+} from "@/lib/workflow/derive-route-simulation-summaries";
+import {
+  deriveRiskTaxonomy,
+  type RouteRiskTaxonomy,
+} from "@/lib/workflow/derive-risk-taxonomy";
 
 export interface CampaignReportRouteSummary {
   id: string;
@@ -77,6 +89,15 @@ export interface CampaignReport {
   whyRecommendedWins: string;
   whereRunnerUpIsStronger?: string;
   biggestTradeoff: string;
+
+  // Decision cockpit — deterministic
+  decisionSummary: DecisionSummary;
+
+  // Risk taxonomy per route — deterministic
+  riskTaxonomy: RouteRiskTaxonomy[];
+
+  // Route-level simulation summaries — deterministic
+  routeSimulationSummaries: RouteSimulationSummary[];
 
   selectedRouteId?: string;
   selectedRouteName?: string;
@@ -217,6 +238,14 @@ export function buildCampaignReport(input: CampaignExportInput): CampaignReport 
     comparison.rows,
   );
 
+  const decisionSummary = buildDecisionSummary({ routes, scores, comparison, premortemReview });
+  const riskTaxonomy = deriveRiskTaxonomy({ routes, scores, comparison, premortemReview });
+  const routeSimulationSummaries = deriveRouteSimulationSummaries({
+    routes,
+    personas: input.personas,
+    simulations: input.simulations,
+  });
+
   const routeSummaries: CampaignReportRouteSummary[] = routes.map((route) => {
     const score = scoreMap.get(route.id);
     const row = rowMap.get(route.id);
@@ -284,6 +313,10 @@ export function buildCampaignReport(input: CampaignExportInput): CampaignReport 
     whyRecommendedWins: whyWins,
     whereRunnerUpIsStronger: whereRunnerUpStronger,
     biggestTradeoff,
+
+    decisionSummary,
+    riskTaxonomy,
+    routeSimulationSummaries,
 
     selectedRouteId,
     selectedRouteName: selectedRoute?.name,

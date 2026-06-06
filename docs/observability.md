@@ -56,6 +56,8 @@ No API keys or raw env vars are included in these fields.
 - API keys or auth credentials
 - Raw provider response objects containing metadata
 - Full brief text in production telemetry (briefs stay in stage input/output schemas only)
+- Uploaded file contents (briefs are processed in-memory and not written to logs)
+- Composed prompt text (skill content injected via `composePrompt()` is not logged in full in production)
 
 ## Current storage
 
@@ -67,7 +69,7 @@ V1 stores trace events in the run response only. No persistence. Later versions 
 |---|---|
 | `normalize_brief` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | `extract_strategic_tension` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
-| `generate_campaign_routes` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
+| `generate_campaign_routes` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise. On quality-gate repair retry, a second attempt trace event is emitted with `attempt: 2` in metadata. `qualityWarnings` count included in result metadata. |
 | `build_personas` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | `simulate_reactions` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise |
 | `score_routes` | Always: `provider: "deterministic"`, `model: "score-routes-v1"`, `costUsd: 0`, `promptVersion: undefined` |
@@ -75,6 +77,10 @@ V1 stores trace events in the run response only. No persistence. Later versions 
 | `compare_routes` | Always: `provider: "deterministic"`, `model: "compare-routes-v1"`, `costUsd: 0`, `promptVersion: undefined` |
 | `human_selection` | Local UI action — no trace event emitted by the server |
 | `generate_execution_plan` | Real LLM telemetry when `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai`; mock otherwise. `promptVersion: "generate_execution_plan.v1"`. Only emitted after explicit human route selection. |
+| `buildDecisionSummary` | Render-time deterministic — no trace event. Derived from existing run data. |
+| `deriveRiskTaxonomy` | Render-time deterministic — no trace event. Derived from scores + comparison + premortem. |
+| `deriveRouteSimulationSummaries` | Render-time deterministic — no trace event. Derived from routes + personas + simulations. |
+| `export_artifact` | No trace event. Deterministic render from `CampaignReport` model. No LLM, no cost. |
 
 The six LLM stages emit `provider`, `model`, `promptVersion`, `inputTokens`, `outputTokens`, and `durationMs` in their trace events.
 

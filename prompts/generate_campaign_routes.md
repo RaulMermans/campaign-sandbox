@@ -24,6 +24,8 @@ Return JSON only. No markdown. No explanation. No text before or after the JSON 
 - killerLine must be the sharpest single line this route would put on a poster or email subject line.
 - failureMode must name the specific way this route goes wrong if execution is lazy or underfunded.
 - Do not expose raw model reasoning. Return the JSON object only.
+- proofMechanism must NOT imply that real customer testimonials, user-generated content, or satisfied subscriber quotes exist unless the brief explicitly provides them. If the brief does not mention existing customer evidence, use language like "testimonial-style creative," "scenario-based creative," or "customer proof if available." Never write "real customer testimonials" or "user-generated content" as if they already exist.
+- Route names must be specific, concrete, and ownable. They must NOT be adjective + generic category noun (e.g., "Effortless Elegance," "Urban Escape," "Calm Curation," "Premium Ritual," "Elevated Evening"). Use names rooted in a real tension, behavior, or moment from the brief.
 
 ## Output schema
 

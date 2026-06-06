@@ -10,8 +10,13 @@ This is not an AI campaign generator. It is a workflow for creative teams making
 
 - **Intake Mode / Results Workspace Mode** — the UI now switches layouts. Before a run: editorial two-column intake with paste/upload support. After a run: compact top bar + full-width results workspace with sticky section nav and a brief drawer for re-running.
 - **File brief import** — upload a PDF, PPTX, or TXT file. Text is extracted server-side, shown in an editable preview, and only sent to the LLM when you click Run. No file storage, no OCR, no auto-run.
-- **Skill layer v1** — seven prompt-injection skills (`brief-distillation`, `cultural-strategy`, `creative-territory`, `persona-decision`, `premortem-critic`, `claims-substantiation`, `report-editor`) improve output quality without adding autonomous agents.
-- **Export polish** — Markdown uses a summary table and formatted blockquotes. HTML has a report cover, print page breaks, and a selected route callout.
+- **Skill layer v2** — `<!-- skill:name -->` marker replacement at runtime via `composePrompt()`. Skills are bounded prompt instructions, not autonomous agents.
+- **Decision Cockpit** — deterministic summary after run completion: recommended route, why it wins, runner-up, tradeoff, typed risk badge, close-score notice.
+- **Route Quality Gate v1** — deterministic validator after route generation. Flags generic names, vague killer lines, thin visual worlds, unsupported proof claims. Retries once with a focused repair prompt on blocking issues.
+- **Proof Integrity Guardrail** — flags "real customer testimonials" and similar unsupported claims in routes and execution plan unless the brief provides evidence.
+- **Risk Taxonomy** — six typed risk categories (Creative / Proof / Conversion / Channel / Execution / Brand dilution) derived deterministically per route.
+- **Route Simulation Summaries** — derived averages + strongest/weakest persona per route, shown before individual persona cards.
+- **Export v2** — Markdown and HTML reports now include Decision Summary, risk taxonomy, and route simulation synthesis tables.
 
 ## Stack
 
@@ -133,7 +138,7 @@ The app builds and runs with no env vars set (defaults to mock mode). See `.env.
 | `compare_routes` | **Deterministic** (no LLM, no env vars needed) |
 | `human_selection` | Local explicit user action (UI only, no persistence) |
 | `generate_execution_plan` | **Real (optional)** via server-side env — requires explicit human route selection |
-| `export_artifact` | Not implemented |
+| `export_artifact` | **Deterministic** Markdown/HTML (no LLM, no PDF, no persistence) |
 
 LLM stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. Deterministic stages (`score_routes`, `compare_routes`) work in all modes without any env vars. The app builds and runs fully without any env vars (mock mode).
 
@@ -160,11 +165,13 @@ All scores and comparison dimensions are bounded qualitative strategic estimates
 - `lib/llm/` — LLM provider adapter (server-side only).
 - `lib/schemas/` — Zod contracts.
 - `lib/skills/` — Prompt-injection skill modules (`.md` files + TypeScript loader). Not autonomous agents.
-- `lib/workflow/` — Workflow boundary, mock run, validators, and stage functions.
+- `lib/workflow/` — Workflow boundary, mock run, validators, stage functions, and deterministic derivations.
 - `lib/workflow/stages/` — Bounded stage functions (server-side only).
+- `lib/workflow/quality/` — Route Quality Gate and Proof Integrity Guardrail (deterministic validators).
 - `lib/scoring/` — Deterministic route scoring and comparison helpers.
 - `lib/traces/` — Trace event factory.
 - `lib/export/` — Deterministic export renderers (Markdown, HTML).
+- `lib/prompts/` — `composePrompt()` skill-marker replacement utility.
 - `prompts/` — Bounded LLM prompt files (include injected skill sections).
 - `docs/` — Architecture, prompts, safety, observability, and deployment docs.
 
@@ -194,7 +201,6 @@ pnpm dev -- -p 3001
 
 ## Next Build Steps
 
-- Add human selection gate and execution plan generation.
 - Add persisted campaign runs.
-- Add exportable artifacts.
+- Add PDF export option.
 - Add Trigger.dev orchestration when background execution is needed.

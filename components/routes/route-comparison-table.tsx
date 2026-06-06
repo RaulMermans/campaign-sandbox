@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { RouteComparisonMatrix, RouteComparisonRow } from "@/lib/schemas/campaign";
+import type { RouteRiskTaxonomy } from "@/lib/workflow/derive-risk-taxonomy";
 
 const RISK_COLORS: Record<string, string> = {
   low: "bg-green-100 text-green-800",
@@ -41,7 +42,28 @@ function deriveRowBadges(
   return badges;
 }
 
-export function RouteComparisonTable({ matrix }: { matrix: RouteComparisonMatrix }) {
+const RISK_TYPE_COLORS: Record<string, string> = {
+  "Creative risk": "bg-purple-100 text-purple-700",
+  "Proof risk": "bg-red-100 text-red-700",
+  "Conversion risk": "bg-blue-100 text-blue-700",
+  "Channel risk": "bg-orange-100 text-orange-700",
+  "Execution risk": "bg-amber-100 text-amber-700",
+  "Brand dilution risk": "bg-stone-200 text-stone-600",
+};
+
+const SEVERITY_COLORS: Record<string, string> = {
+  Low: "text-green-700",
+  Moderate: "text-amber-700",
+  High: "text-red-700",
+};
+
+export function RouteComparisonTable({
+  matrix,
+  riskTaxonomy = [],
+}: {
+  matrix: RouteComparisonMatrix;
+  riskTaxonomy?: RouteRiskTaxonomy[];
+}) {
   const sorted = [...matrix.rows].sort((a, b) => b.weightedTotal - a.weightedTotal);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
@@ -80,6 +102,7 @@ export function RouteComparisonTable({ matrix }: { matrix: RouteComparisonMatrix
                 const isRecommended = row.routeId === matrix.recommendedRouteId;
                 const isExpanded = expandedIds.has(row.routeId);
                 const rowBg = isRecommended ? " bg-stone-50" : "";
+                const taxonomy = riskTaxonomy.find((t) => t.routeId === row.routeId);
 
                 return [
                   <tr key={`${row.routeId}-main`} className={`border-b border-stone-100 align-middle${rowBg}`}>
@@ -107,9 +130,20 @@ export function RouteComparisonTable({ matrix }: { matrix: RouteComparisonMatrix
                     <td className="py-3 pr-4 text-right text-stone-700">{row.conversionPotential.toFixed(1)}</td>
                     <td className="py-3 pr-4 text-right text-stone-700">{row.feasibility.toFixed(1)}</td>
                     <td className="py-3">
-                      <span className={`rounded px-1.5 py-0.5 text-xs font-semibold capitalize ${RISK_COLORS[row.riskLevel] ?? ""}`}>
-                        {row.riskLevel} risk
-                      </span>
+                      {taxonomy ? (
+                        <div className="grid gap-1">
+                          <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${RISK_TYPE_COLORS[taxonomy.primaryRiskType] ?? ""}`}>
+                            {taxonomy.primaryRiskType}
+                          </span>
+                          <span className={`text-xs font-medium ${SEVERITY_COLORS[taxonomy.severity] ?? ""}`}>
+                            {taxonomy.severity}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className={`rounded px-1.5 py-0.5 text-xs font-semibold capitalize ${RISK_COLORS[row.riskLevel] ?? ""}`}>
+                          {row.riskLevel} risk
+                        </span>
+                      )}
                     </td>
                   </tr>,
 
@@ -148,6 +182,12 @@ export function RouteComparisonTable({ matrix }: { matrix: RouteComparisonMatrix
                             <p className="col-span-full text-xs text-stone-500">
                               <span className="font-medium">When to use: </span>
                               {row.recommendation}
+                            </p>
+                          )}
+                          {taxonomy && (
+                            <p className="col-span-full text-xs italic text-stone-400">
+                              <span className="not-italic font-medium">Risk note: </span>
+                              {taxonomy.explanation}
                             </p>
                           )}
                         </div>

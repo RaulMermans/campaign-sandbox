@@ -15,6 +15,11 @@ import { env } from "@/lib/env";
 import { generateJson } from "@/lib/llm/generate-json";
 import { LlmJsonParseError, LlmSchemaValidationError } from "@/lib/llm/errors";
 import { campaignRoutes as MOCK_CAMPAIGN_ROUTES } from "@/lib/workflow/mock-campaign-run";
+import {
+  validateRouteQuality,
+  hasBlockingRouteQualityIssues,
+  type RouteQualityIssue,
+} from "@/lib/workflow/quality/validate-route-quality";
 
 const PROMPT_FILE = "generate_campaign_routes.md";
 const PROMPT_VERSION = "generate_campaign_routes.v1";
@@ -24,6 +29,7 @@ const OPENAI_TIMEOUT_MS = 75_000;
 export interface GenerateCampaignRoutesResult {
   routes: CampaignRoute[];
   traceEvent: TraceEvent;
+  qualityWarnings?: RouteQualityIssue[];
 }
 
 // --- Mock path ---
@@ -50,13 +56,39 @@ function generateRoutesMock(runId: string): GenerateCampaignRoutesResult {
 
 // --- OpenAI path ---
 
+function buildRepairPrompt(
+  basePrompt: string,
+  issues: RouteQualityIssue[],
+): string {
+  const issueList = issues
+    .map((i) => `- [${i.field}] ${i.message}`)
+    .join("\n");
+
+  return [
+    basePrompt,
+    "",
+    "## QUALITY REPAIR REQUIRED",
+    "",
+    "The previous output failed quality validation. Please regenerate routes fixing these issues:",
+    "",
+    issueList,
+    "",
+    "Rules:",
+    "- Route names must be specific and ownable, not generic adjective+noun combinations.",
+    "- Killer lines must be concrete and rooted in the brand tension, not motivational platitudes.",
+    "- Visual world must include at least 2 entries with concrete sensory or production detail.",
+    "- Proof mechanisms must not imply real customer testimonials unless the brief explicitly provides them.",
+    "- Use 'testimonial-style creative' or 'customer proof if available' for conceptual proof assets.",
+  ].join("\n");
+}
+
 async function generateRoutesWithOpenAI(
   normalizedBrief: NormalizedCampaignBrief,
   strategicTension: StrategicTension,
   runId: string,
 ): Promise<GenerateCampaignRoutesResult> {
   const promptTemplate = await loadPrompt(PROMPT_FILE);
-  const prompt = [
+  const basePrompt = [
     promptTemplate.trim(),
     "",
     "## NORMALIZED BRIEF",
@@ -70,9 +102,13 @@ async function generateRoutesWithOpenAI(
 
   const startMs = Date.now();
   let lastError: unknown;
+  let qualityWarnings: RouteQualityIssue[] | undefined;
 
-  // One retry on JSON parse or schema validation failure.
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  // Up to 3 attempts: 1 normal + 1 schema retry + 1 quality retry
+  let prompt = basePrompt;
+  let qualityRetryDone = false;
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const result = await generateJson({
         prompt,
@@ -81,7 +117,24 @@ async function generateRoutesWithOpenAI(
         timeoutMs: OPENAI_TIMEOUT_MS,
       });
 
+      const routes = result.data.routes;
+
+      // Quality gate: validate routes on first valid schema result
+      const qualityIssues = validateRouteQuality(routes);
+      const hasBlocking = hasBlockingRouteQualityIssues(qualityIssues);
+
+      if (hasBlocking && !qualityRetryDone) {
+        // Retry once with a repair prompt
+        qualityRetryDone = true;
+        prompt = buildRepairPrompt(basePrompt, qualityIssues);
+        continue;
+      }
+
       const durationMs = Date.now() - startMs;
+      if (qualityIssues.length > 0) {
+        qualityWarnings = qualityIssues;
+      }
+
       const traceEvent = createTraceEvent({
         runId,
         stageId: "generate_campaign_routes",
@@ -90,7 +143,9 @@ async function generateRoutesWithOpenAI(
         message:
           attempt === 1
             ? "Campaign routes generated via OpenAI."
-            : "Campaign routes generated via OpenAI after one retry.",
+            : qualityRetryDone && !hasBlocking
+              ? "Campaign routes generated via OpenAI after quality repair retry."
+              : "Campaign routes generated via OpenAI after one retry.",
         outputSchema: "CampaignRoute[]",
         provider: "openai",
         model: result.model,
@@ -100,12 +155,13 @@ async function generateRoutesWithOpenAI(
         durationMs,
       });
 
-      return { routes: result.data.routes, traceEvent };
+      return { routes, traceEvent, qualityWarnings };
     } catch (err) {
       lastError = err;
       const isRetryable =
         err instanceof LlmJsonParseError || err instanceof LlmSchemaValidationError;
-      if (!isRetryable || attempt === 2) {
+      // Only retry schema/parse errors once; don't add extra retries beyond attempt 3
+      if (!isRetryable || attempt >= 3) {
         break;
       }
       // Retry once on JSON or schema failure; do not retry on provider/network errors.
