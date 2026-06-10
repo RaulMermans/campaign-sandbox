@@ -13,6 +13,7 @@ import { PersonaSimulationPanel } from "@/components/simulation/persona-simulati
 import { RouteSimulationSummaryPanel } from "@/components/personas/route-simulation-summary-panel";
 import { CollapsibleSection } from "@/components/run/collapsible-section";
 import { ExecutionPlanPanel } from "@/components/run/execution-plan-panel";
+import { CreativeDirectorReviewPanel } from "@/components/run/creative-director-review-panel";
 import { ExportPanel } from "@/components/run/export-panel";
 import { TraceTimeline } from "@/components/trace/trace-timeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -189,6 +190,8 @@ export function ResultsWorkspace({
                 score={run.scores.find((s) => s.routeId === route.id)}
                 rank={scoreRank.get(route.id)}
                 scoreLabel={scoreLabels.get(route.id)}
+                isRecommended={route.id === recommendedRouteId}
+                riskTaxonomy={riskTaxonomy.find((t) => t.routeId === route.id)}
               />
             ))}
           </div>
@@ -276,17 +279,24 @@ export function ResultsWorkspace({
                         {run.routes.find((r) => r.id === routeRisk.routeId)?.name ?? routeRisk.routeId}
                       </p>
                       {taxonomy ? (
-                        <span
-                          className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
-                            taxonomy.severity === "High"
-                              ? "bg-red-100 text-red-700"
-                              : taxonomy.severity === "Low"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-amber-100 text-amber-700"
-                          }`}
-                        >
-                          {taxonomy.severity} · {taxonomy.primaryRiskType}
-                        </span>
+                        <>
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
+                              taxonomy.severity === "High"
+                                ? "bg-red-100 text-red-700"
+                                : taxonomy.severity === "Low"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {taxonomy.severity} · {taxonomy.primaryRiskType}
+                          </span>
+                          {taxonomy.secondaryRiskType ? (
+                            <span className="rounded bg-stone-100 px-1.5 py-0.5 text-xs font-medium text-stone-500">
+                              also: {taxonomy.secondaryRiskType}
+                            </span>
+                          ) : null}
+                        </>
                       ) : null}
                     </div>
                     <ul className="grid gap-1">
@@ -333,6 +343,15 @@ export function ResultsWorkspace({
             <ComparisonExplanation summary={decisionSummary} />
           </div>
         </section>
+
+        {run.creativeDirectorReview ? (
+          <section id="creative-review">
+            <CreativeDirectorReviewPanel
+              review={run.creativeDirectorReview}
+              routeNamesById={new Map(run.routes.map((route) => [route.id, route.name]))}
+            />
+          </section>
+        ) : null}
 
         <section id="selection">
           <Card>

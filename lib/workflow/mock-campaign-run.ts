@@ -1,6 +1,8 @@
 import type {
   CampaignExecutionPlan,
   CampaignRoute,
+  CreativeDirectorReview,
+  CreativeDirectorRouteReview,
   NormalizedCampaignBrief,
   Persona,
   PersonaSimulation,
@@ -593,6 +595,152 @@ function buildExecutionPlan(selectedRouteId: string): CampaignExecutionPlan {
   };
 }
 
+// Deterministic mock Creative Director Review.
+// Generates one route review per route, derived from each route's strategicRole
+// and existing creative DNA fields (killerLine, enemy, visualWorld) so the mock
+// stays internally consistent with whatever routes are passed in (sample or fast-mode subsets).
+// This is expert creative critique, not market research — caveat reflects that.
+export function buildMockCreativeDirectorReview(routes: CampaignRoute[]): CreativeDirectorReview {
+  const boldest = routes.find((r) => r.strategicRole === "boldest");
+  const strongestRouteId = (boldest ?? routes[0]).id;
+
+  const routeReviews: CreativeDirectorRouteReview[] = routes.map((route) => {
+    const isBoldest = route.strategicRole === "boldest";
+    const isConversion = route.strategicRole === "conversion";
+
+    if (isBoldest) {
+      return {
+        routeId: route.id,
+        routeName: route.name,
+        originalityScore: 4.4,
+        ownabilityScore: 4.5,
+        culturalSharpnessScore: 4.3,
+        visualPotentialScore: 4.2,
+        conversionClarityScore: 3.4,
+        genericityRisk: "low",
+        verdict: "keep",
+        why: `${route.name} is the only route here that a competitor genuinely could not run — the participation mechanic and the named enemy ("${route.enemy}") give it a point of view most premium brands won't risk taking.`,
+        whatFeelsGeneric: [],
+        whatFeelsOwnable: [
+          `The killer line "${route.killerLine}" reframes a real anxiety instead of selling a feeling`,
+          "The participation mechanic turns the audience into the campaign's visual proof rather than relying on borrowed lifestyle imagery",
+        ],
+        sharperNameOptions: [
+          "Wrong City, Right Day",
+          "Borrowed Desks",
+          "No Fixed Address",
+          "Coordinates, Not Postcodes",
+          "The Commute That Isn't One",
+        ],
+        sharperKillerLines: [
+          "Your address changed three times today. Your shirt didn't.",
+          "Not lost. Just not finished arriving.",
+          "Same person, different desk, same collar.",
+          "The city moved. You stayed dressed for it.",
+        ],
+        creativeDirectorNotes: [
+          "Protect the participation prompt from becoming a hashtag campaign — keep it specific to one recognisable city ritual per wave",
+          "Make sure the product is visibly load-bearing in every submission example, not just present in frame",
+        ],
+      };
+    }
+
+    if (isConversion) {
+      return {
+        routeId: route.id,
+        routeName: route.name,
+        originalityScore: 2.6,
+        ownabilityScore: 2.4,
+        culturalSharpnessScore: 2.5,
+        visualPotentialScore: 3.0,
+        conversionClarityScore: 4.6,
+        genericityRisk: "high",
+        verdict: "sharpen",
+        why: `${route.name} is doing the commercial job correctly but says nothing only this brand could say — strip the category language out of "${route.keyMessage}" and it could be any premium basics brand's product launch email.`,
+        whatFeelsGeneric: [
+          `The phrase "${route.keyMessage}" reads as category convention rather than brand voice`,
+          "The named uniform-edit structure is a sound mechanic but is currently presented with no specific cultural anchor — it could belong to any city, any brand",
+        ],
+        whatFeelsOwnable: [
+          `The proof mechanism ("${route.proofMechanism}") is concrete enough to survive contact with a real shoot list`,
+        ],
+        sharperNameOptions: [
+          "Three Coats, One Person",
+          "The Outfit That Doesn't Ask Questions",
+          "Dressed for the Day You Haven't Planned Yet",
+          "One Bag, Every Excuse",
+          "Built for the Second Meeting",
+        ],
+        sharperKillerLines: [
+          "Dressed before the day decides what it wants from you.",
+          "One outfit. Three rooms. Zero negotiation.",
+          "The shirt that doesn't know it's been to two cities today.",
+          "Built for the version of today you didn't plan for.",
+        ],
+        creativeDirectorNotes: [
+          "Replace the category-standard framing with language pulled directly from the audience's own descriptions of a hard day — the brief's sensitivities list is the source, not a thesaurus",
+          "Anchor each 'edit' in a named, specific real-world scenario rather than a generic time-of-day label",
+        ],
+      };
+    }
+
+    // safest / default
+    return {
+      routeId: route.id,
+      routeName: route.name,
+      originalityScore: 3.6,
+      ownabilityScore: 3.7,
+      culturalSharpnessScore: 3.5,
+      visualPotentialScore: 4.0,
+      conversionClarityScore: 3.2,
+      genericityRisk: "medium",
+      verdict: "sharpen",
+      why: `${route.name} is well-crafted and on-brand, but its restraint currently reads as safety rather than confidence — the visual world is strong enough to carry a sharper, less polite copy register.`,
+      whatFeelsGeneric: [
+        `"${route.killerLine}" is elegant but sits close to typical premium-editorial copy — it states the territory rather than dramatising it`,
+      ],
+      whatFeelsOwnable: [
+        `The visual world detail ("${route.visualWorld[0] ?? "the environmental shot list"}") is specific enough to be hard to copy`,
+        `The named enemy ("${route.enemy}") gives the route a point of view most quiet-luxury routes lack`,
+      ],
+      sharperNameOptions: [
+        "Unfinished Hours",
+        "The Second Desk",
+        "Mid-Sentence City",
+        "Nowhere Long Enough",
+        "Half-Day Uniform",
+      ],
+      sharperKillerLines: [
+        "Dressed for the meeting you haven't found yet.",
+        "Some days don't have one address. This shirt knows that.",
+        "Quiet enough for the studio, sharp enough for whatever's after it.",
+        "Made for the hours that don't have a name yet.",
+      ],
+      creativeDirectorNotes: [
+        "Push the copy register one notch drier — the photography is already doing the 'calm' work, the words don't need to repeat it",
+        "Use the flat-lay/receipt detail assets as a recurring visual signature so the route earns a distinct identity beyond 'nice editorial'",
+      ],
+    };
+  });
+
+  return {
+    overallVerdict:
+      "The set has one genuinely ownable idea, one well-made but over-polite execution, and one commercially sound route that currently sounds like the category rather than the brand.",
+    strongestRouteId,
+    routeReviews,
+    crossRouteRecommendations: [
+      "Audit every route's copy for category-default vocabulary (elevated, effortless, curated, premium, journey) and replace it with language pulled from the brief's actual audience sensitivities",
+      "Make the named 'enemy' in each route visible in the work itself, not just in the strategy document — it is currently the sharpest differentiator and the easiest thing to lose in production",
+      "Choose one visual signature (the diptych, the flat-lay receipts, the environmental crop) and let it recur across all selected routes so the campaign reads as one system, not three separate pitches",
+    ],
+    routesToAvoidOrMerge: [],
+    finalRecommendation:
+      "Lead with the boldest route's point of view, but borrow its specificity to rewrite the conversion route's copy before production — as written, the conversion route would dilute the campaign's voice at the exact moment it needs to close the sale.",
+    caveat:
+      "This is expert creative critique from a senior-creative-director perspective — not market research, audience testing, or validated performance data. Treat it as a sharpening pass, not proof that any route will perform.",
+  };
+}
+
 function buildTraceEvents(runId: string, status: "awaiting_selection" | "completed") {
   const completedBeforeSelection = [
     createTraceEvent({ runId, stageId: "workflow", type: "workflow.started", status: "running", message: "Campaign workflow started." }),
@@ -604,6 +752,7 @@ function buildTraceEvents(runId: string, status: "awaiting_selection" | "complet
     createTraceEvent({ runId, stageId: "score_routes", type: "stage.completed", status: "completed", message: "Routes scored as strategic estimates.", outputSchema: "RouteScore[]", durationMs: 40 }),
     createTraceEvent({ runId, stageId: "premortem_review", type: "stage.completed", status: "completed", message: "Pre-mortem risks and mitigations reviewed.", outputSchema: "PremortemReview", durationMs: 110 }),
     createTraceEvent({ runId, stageId: "compare_routes", type: "stage.completed", status: "completed", message: "Comparison matrix prepared for human route selection.", outputSchema: "RouteComparisonMatrix", durationMs: 35 }),
+    createTraceEvent({ runId, stageId: "creative_director_review", type: "stage.completed", status: "completed", message: "Creative director review completed using mock provider.", outputSchema: "CreativeDirectorReview", provider: "mock", model: "mock-creative-director", promptVersion: "creative_director_review.v1", costUsd: 0, durationMs: 75 }),
   ];
 
   if (status === "awaiting_selection") {
@@ -643,6 +792,7 @@ export function buildMockCampaignRun(messyBrief = NODO_SAMPLE_BRIEF): CampaignRu
     scores,
     premortem: premortemReview,
     comparisonMatrix: buildComparisonMatrix(scores),
+    creativeDirectorReview: buildMockCreativeDirectorReview(campaignRoutes),
     traceEvents: buildTraceEvents(runId, "awaiting_selection"),
     disclaimer:
       "Demo mode currently uses mocked strategy outputs. Synthetic persona reactions and route scores are strategic estimates for decision support, not real market research or success predictions.",
@@ -668,6 +818,7 @@ export function buildMockCompletedCampaignRun(selectedRouteId = "route-quiet-iti
     scores,
     premortem: premortemReview,
     comparisonMatrix: buildComparisonMatrix(scores),
+    creativeDirectorReview: buildMockCreativeDirectorReview(campaignRoutes),
     humanSelection: {
       selectedRouteId,
       selectedBy: "mock_creative_lead",

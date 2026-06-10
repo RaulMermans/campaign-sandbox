@@ -7,14 +7,12 @@ import type {
   RouteComparisonMatrix,
   PremortemReview,
 } from "@/lib/schemas/campaign";
+import { deriveRiskTaxonomy, type RiskType } from "@/lib/workflow/derive-risk-taxonomy";
 
-export type RiskType =
-  | "Creative risk"
-  | "Proof risk"
-  | "Conversion risk"
-  | "Channel risk"
-  | "Execution risk"
-  | "Brand dilution risk";
+// Re-exported so the cockpit reflects the same 8-category taxonomy used in
+// the comparison table and route-specific risk cards — a single source of
+// truth for risk classification across the workspace.
+export type { RiskType };
 
 export type DecisionSummary = {
   recommendedRouteId: string;
@@ -28,69 +26,6 @@ export type DecisionSummary = {
 };
 
 const CLOSE_SCORE_THRESHOLD = 0.2;
-
-function deriveRiskType(
-  routeId: string,
-  comparison: RouteComparisonMatrix,
-  premortem: PremortemReview,
-  routes: CampaignRoute[],
-  scores: RouteScore[],
-): RiskType {
-  const row = comparison.rows.find((r) => r.routeId === routeId);
-  const routeRisks = premortem.routeRisks.find((rr) => rr.routeId === routeId);
-  const score = scores.find((s) => s.routeId === routeId);
-  const route = routes.find((r) => r.id === routeId);
-
-  const riskText = [
-    ...(routeRisks?.risks ?? []),
-    route?.failureMode ?? "",
-    ...(row?.keyRisks ?? []),
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  if (score && score.scores.feasibility <= 3) return "Execution risk";
-
-  if (
-    riskText.includes("testimonial") ||
-    riskText.includes("proof") ||
-    riskText.includes("evidence") ||
-    riskText.includes("substantiation") ||
-    riskText.includes("claim")
-  )
-    return "Proof risk";
-
-  if (
-    riskText.includes("conversion") ||
-    riskText.includes("cta") ||
-    riskText.includes("click") ||
-    riskText.includes("purchase") ||
-    riskText.includes("signup")
-  )
-    return "Conversion risk";
-
-  if (
-    riskText.includes("channel") ||
-    riskText.includes("platform") ||
-    riskText.includes("media") ||
-    riskText.includes("distribution")
-  )
-    return "Channel risk";
-
-  if (
-    riskText.includes("generic") ||
-    riskText.includes("bland") ||
-    riskText.includes("dilut") ||
-    riskText.includes("indistinguish") ||
-    riskText.includes("catalog")
-  )
-    return "Brand dilution risk";
-
-  if (row?.strategicRole === "boldest" || row?.riskLevel === "high") return "Creative risk";
-  if (row?.riskLevel === "low") return "Execution risk";
-
-  return "Creative risk";
-}
 
 function deriveWhyItWins(
   row: RouteComparisonMatrix["rows"][number],
@@ -209,7 +144,13 @@ export function buildDecisionSummary(input: {
 
   const whyItWins = deriveWhyItWins(recommendedRow, comparison.rows, scores);
   const biggestTradeoff = deriveBiggestTradeoff(recommendedRow, routes, scores);
-  const riskType = deriveRiskType(recommendedId, comparison, premortemReview, routes, scores);
+
+  // Reuse the canonical risk taxonomy so the cockpit's headline risk always
+  // matches the detailed classification shown in the comparison table and
+  // route risk cards further down the page.
+  const taxonomy = deriveRiskTaxonomy({ routes, scores, comparison, premortemReview });
+  const recommendedTaxonomy = taxonomy.find((t) => t.routeId === recommendedId);
+  const riskType: RiskType = recommendedTaxonomy?.primaryRiskType ?? "Creative risk";
 
   const runnerUpRouteId = runnerUpRow?.routeId;
   const runnerUpStrength = runnerUpRow ? deriveRunnerUpStrength(recommendedRow, runnerUpRow) : undefined;

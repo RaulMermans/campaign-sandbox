@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CampaignRoute, RouteScore } from "@/lib/schemas/campaign";
+import type { RouteRiskTaxonomy } from "@/lib/workflow/derive-risk-taxonomy";
 
 const ROLE_COLORS: Record<string, string> = {
   safest: "bg-green-100 text-green-800",
@@ -11,21 +12,38 @@ const ROLE_COLORS: Record<string, string> = {
   conversion: "bg-blue-100 text-blue-800",
 };
 
+// Mirrors RISK_TYPE_COLORS in route-comparison-table.tsx and decision-cockpit
+// — keep risk-type colors consistent everywhere they appear in the workspace.
+const RISK_TYPE_COLORS: Record<string, string> = {
+  "Creative risk": "bg-purple-100 text-purple-700",
+  "Proof risk": "bg-red-100 text-red-700",
+  "Conversion risk": "bg-blue-100 text-blue-700",
+  "Channel risk": "bg-orange-100 text-orange-700",
+  "Execution risk": "bg-amber-100 text-amber-700",
+  "Brand dilution risk": "bg-stone-200 text-stone-600",
+  "Audience risk": "bg-teal-100 text-teal-700",
+  "Cultural risk": "bg-rose-100 text-rose-700",
+};
+
 export function CampaignRouteCard({
   route,
   score,
   rank,
   scoreLabel,
+  isRecommended,
+  riskTaxonomy,
 }: {
   route: CampaignRoute;
   score?: RouteScore;
   rank?: number;
   scoreLabel?: string;
+  isRecommended?: boolean;
+  riskTaxonomy?: RouteRiskTaxonomy;
 }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Card className="flex h-full flex-col">
+    <Card className={`flex h-full flex-col${isRecommended ? " border-stone-900" : ""}`}>
       <CardHeader className="grid gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -37,6 +55,20 @@ export function CampaignRouteCard({
             <CardTitle className="text-base">{route.name}</CardTitle>
           </div>
           <Badge className={ROLE_COLORS[route.strategicRole] ?? ""}>{route.strategicRole}</Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {isRecommended ? (
+            <span className="rounded bg-stone-900 px-1.5 py-0.5 text-xs font-semibold text-white">
+              Recommended
+            </span>
+          ) : null}
+          {riskTaxonomy ? (
+            <span
+              className={`rounded px-1.5 py-0.5 text-xs font-medium ${RISK_TYPE_COLORS[riskTaxonomy.primaryRiskType] ?? ""}`}
+            >
+              {riskTaxonomy.severity} · {riskTaxonomy.primaryRiskType}
+            </span>
+          ) : null}
         </div>
         <p className="text-sm leading-6 text-stone-600">{route.position}</p>
       </CardHeader>

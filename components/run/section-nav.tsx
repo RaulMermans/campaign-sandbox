@@ -7,6 +7,7 @@ const SECTIONS = [
   { id: "simulations", label: "Simulations" },
   { id: "risks", label: "Risks" },
   { id: "comparison", label: "Comparison" },
+  { id: "creative-review", label: "Creative Review" },
   { id: "selection", label: "Selection" },
   { id: "execution-plan", label: "Execution Plan" },
   { id: "export", label: "Export" },

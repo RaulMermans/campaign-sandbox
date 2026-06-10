@@ -30,6 +30,39 @@ const FORBIDDEN_NAME_PATTERNS = [
   "the elevated edit",
 ];
 
+// Category-wide creative shorthand that shows up across many brands' routes.
+// Presence doesn't automatically make a route bad (e.g. "The 7PM Reset" earns
+// "reset" through a specific anchor), so these are warnings that travel into
+// the repair prompt rather than blocking errors.
+const OVERUSED_ROUTE_WORDS = [
+  "elevated",
+  "effortless",
+  "ritual",
+  "reset",
+  "curation",
+  "essence",
+  "journey",
+  "unlock",
+  "transform",
+  "reimagine",
+  "experience",
+  "premium",
+  "urban escape",
+];
+
+function findOverusedWords(text: string): string[] {
+  const lower = text.toLowerCase();
+  return OVERUSED_ROUTE_WORDS.filter((word) => {
+    const pattern = new RegExp(`\\b${word.replace(/\s+/g, "\\s+")}\\b`, "i");
+    return pattern.test(lower);
+  });
+}
+
+function overusedWordRepairHint(words: string[]): string {
+  const quoted = words.map((word) => `"${word}"`).join(", ");
+  return `Replace ${quoted} with language drawn from the brief's brand voice, audience tension, or product specifics — not category-wide creative shorthand that could apply to any brand.`;
+}
+
 const FAKE_PROOF_PATTERNS = [
   /\breal customer testimonials?\b/i,
   /\bsatisfied subscriber quotes?\b/i,
@@ -217,6 +250,26 @@ export function validateRouteQuality(routes: CampaignRoute[]): RouteQualityIssue
         field: "name",
         severity: "error",
         message: `Route name "${route.name}" is too generic or matches a known forbidden pattern. Use a specific, ownable name rooted in the brief.`,
+      });
+    }
+
+    const nameOverusedWords = findOverusedWords(route.name);
+    if (nameOverusedWords.length > 0) {
+      issues.push({
+        routeId: route.id,
+        field: "name",
+        severity: "warning",
+        message: `Route name "${route.name}" leans on overused creative shorthand (${nameOverusedWords.join(", ")}). ${overusedWordRepairHint(nameOverusedWords)}`,
+      });
+    }
+
+    const killerLineOverusedWords = findOverusedWords(route.killerLine);
+    if (killerLineOverusedWords.length > 0) {
+      issues.push({
+        routeId: route.id,
+        field: "killerLine",
+        severity: "warning",
+        message: `Killer line "${route.killerLine}" leans on overused creative shorthand (${killerLineOverusedWords.join(", ")}). ${overusedWordRepairHint(killerLineOverusedWords)}`,
       });
     }
 

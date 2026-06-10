@@ -23,6 +23,10 @@ import { env } from "@/lib/env";
 import { generateJson } from "@/lib/llm/generate-json";
 import { LlmJsonParseError, LlmSchemaValidationError } from "@/lib/llm/errors";
 import { validatePremortemCoverage } from "@/lib/workflow/validate-premortem";
+import {
+  validateProofIntegrity,
+  hasBlockingProofIntegrityIssues,
+} from "@/lib/workflow/quality/validate-proof-integrity";
 import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
 import { premortemReview as MOCK_PREMORTEM } from "@/lib/workflow/mock-campaign-run";
 
@@ -40,6 +44,7 @@ export interface PremortemReviewResult {
 
 function premortemReviewMock(
   routes: CampaignRoute[],
+  normalizedBrief: NormalizedCampaignBrief,
   runId: string,
 ): PremortemReviewResult {
   const traceEvent = createTraceEvent({
@@ -91,6 +96,16 @@ function premortemReviewMock(
   const parsed = premortemReviewOutputSchema.parse({ review });
   validatePremortemCoverage({ review: parsed.review, routes });
 
+  const proofIssues = validateProofIntegrity({ normalizedBrief, premortemReview: parsed.review });
+  if (hasBlockingProofIntegrityIssues(proofIssues)) {
+    throw new WorkflowValidationError(
+      "Mock pre-mortem review contains unsupported customer proof language.",
+      proofIssues
+        .filter((i) => i.severity === "error")
+        .map((i) => ({ path: [i.field], message: i.message })),
+    );
+  }
+
   return { review: parsed.review, traceEvent };
 }
 
@@ -134,14 +149,26 @@ async function premortemReviewWithOpenAI(
     JSON.stringify(scores, null, 2),
   ].join("\n");
 
+  const PROOF_REPAIR_INSTRUCTION = `
+IMPORTANT CORRECTION: The previous response contained unsupported customer proof language.
+Do not imply that real customer testimonials, user-generated content (UGC), customer names and photos,
+satisfied subscriber quotes, or verified customer reviews exist unless the brief explicitly provides them —
+including in risk descriptions and mitigation language (e.g. "mitigate by featuring real customer testimonials").
+Replace any such language with:
+- "testimonial-style creative" instead of "real customer testimonials"
+- "scenario-based creative" instead of "user-generated content"
+- "customer proof if available" or "validated testimonials if available" as qualifiers
+Re-generate the full pre-mortem review JSON with this correction applied.`;
+
   const startMs = Date.now();
   let lastError: unknown;
+  let currentPrompt = prompt;
 
-  // One retry on JSON parse, schema validation, or coverage failure.
+  // One retry on JSON parse, schema validation, coverage, or proof-integrity failure.
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const result = await generateJson({
-        prompt,
+        prompt: currentPrompt,
         schema: premortemReviewOutputSchema,
         model: env.openaiModel,
         timeoutMs: OPENAI_TIMEOUT_MS,
@@ -152,6 +179,25 @@ async function premortemReviewWithOpenAI(
         review: result.data.review,
         routes,
       });
+
+      const proofIssues = validateProofIntegrity({
+        normalizedBrief,
+        premortemReview: result.data.review,
+      });
+
+      if (hasBlockingProofIntegrityIssues(proofIssues) && attempt === 1) {
+        currentPrompt = [currentPrompt, PROOF_REPAIR_INSTRUCTION].join("\n");
+        continue;
+      }
+
+      if (hasBlockingProofIntegrityIssues(proofIssues) && attempt === 2) {
+        throw new WorkflowValidationError(
+          "Pre-mortem review contains unsupported customer proof language after retry.",
+          proofIssues
+            .filter((i) => i.severity === "error")
+            .map((i) => ({ path: [i.field], message: i.message })),
+        );
+      }
 
       const durationMs = Date.now() - startMs;
       const traceEvent = createTraceEvent({
@@ -219,7 +265,7 @@ export async function premortemReviewStage(input: {
 }): Promise<PremortemReviewResult> {
   const runId = input.runId ?? DEFAULT_RUN_ID;
   if (env.provider === "mock") {
-    return premortemReviewMock(input.routes, runId);
+    return premortemReviewMock(input.routes, input.normalizedBrief, runId);
   }
   return premortemReviewWithOpenAI(
     input.normalizedBrief,

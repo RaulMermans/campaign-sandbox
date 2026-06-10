@@ -64,15 +64,16 @@ Rules:
 |---|---|---|
 | `normalize_brief` | **Real (optional)** | `mock` (default) or `openai` |
 | `extract_strategic_tension` | **Real (optional)** | `mock` (default) or `openai` |
-| `generate_campaign_routes` | **Real (optional)** | `mock` (default) or `openai` |
+| `generate_campaign_routes` | **Real (optional)** + quality gate + proof guardrail | `mock` (default) or `openai` |
+| `creative_director_review` | **Real (optional)**, on-demand | `mock` (default) or `openai` |
 | `build_personas` | **Real (optional)** | `mock` (default) or `openai` |
 | `simulate_reactions` | **Real (optional)** | `mock` (default) or `openai` |
 | `score_routes` | **Deterministic** | `deterministic` (no LLM) |
-| `premortem_review` | **Real (optional)** | `mock` (default) or `openai` |
+| `premortem_review` | **Real (optional)** + proof guardrail | `mock` (default) or `openai` |
 | `compare_routes` | **Deterministic** | `deterministic` (no LLM) |
-| `human_selection` | Local explicit user action | — |
-| `generate_execution_plan` | **Real (optional)** | `mock` (default) or `openai` |
-| `export_artifact` | Not implemented | — |
+| `human_selection` | **Implemented** — local explicit user action | — |
+| `generate_execution_plan` | **Real (optional)** + proof guardrail | `mock` (default) or `openai` |
+| `export_artifact` | **Deterministic**, implemented | `deterministic` (no LLM); Markdown, HTML, or PPTX route deck |
 
 ## Server boundary
 
@@ -92,6 +93,8 @@ Real LLM code runs exclusively server-side:
 - `app/api/campaign/comparison/route.ts` — comparison API endpoint. Deterministic. Works without `OPENAI_API_KEY`.
 - `app/api/campaign/execution-plan/route.ts` — execution plan API endpoint. Called after explicit human route selection. Accepts a completed run plus `selectedRouteId`. Generates a plan for the selected route only. Never generates a plan without explicit user selection.
 - `app/api/campaign/extract-brief/route.ts` — file extraction API. Accepts multipart/form-data with a PDF, PPTX, or TXT file. Returns extracted text and warnings. Does not store files. Does not call the LLM. Never called automatically — only when the user uploads a file.
+- `app/api/campaign/creative-review/route.ts` — Creative Director Review API endpoint. On-demand only (not part of `/api/campaign/run`). Accepts validated `normalizedBrief`, `strategicTension`, and `routes`. Returns expert creative critique per route — not market research.
+- `app/api/campaign/export/route.ts` — export API endpoint. Accepts a completed run plus `selectedRouteId` and `format` (`markdown` | `html` | `pptx`). Re-runs the Proof Integrity Guardrail across `normalizedBrief`, `routes`, `executionPlan`, and `premortemReview` before building the report; returns `422` on any blocking finding. Deterministic — no LLM calls.
 
 Client components call `/api/campaign/run`, not stage functions directly. No API keys or env vars are exposed to the browser.
 
@@ -239,17 +242,20 @@ The result view is organized as a decision workspace:
 
 1. **Section navigation** — `SectionNav` lets users jump between major sections.
 2. **Run metadata** — `RunMetadataPanel` shows provider, model, runtime, counts, and recommended route derived from trace events.
-3. **Executive summary** — `ExecutiveSummaryPanel` shows the recommended route, why it leads, primary risk, and a decision note. This is always visible above detail sections.
+3. **Decision summary** — a decision header derived by `buildDecisionSummary` shows the recommended route, why it wins, runner-up strength, the biggest tradeoff, its risk type (shared single source of truth with `deriveRiskTaxonomy`), and a close-score notice when the top two routes are within 0.2.
 4. **Normalized brief + tension** — structured brief and strategic tension.
-5. **Routes** — `CampaignRouteCard` grid with rank, score, and relative label (e.g. "Strongest overall").
-6. **Simulations** — `CollapsibleSection` wrapping `PersonaSimulationPanel`. Collapsed by default.
-7. **Risks** — `CollapsibleSection` wrapping pre-mortem review with route-level risks and overall risks.
-8. **Comparison matrix** — `RouteComparisonTable` with sortable scores, badges, and expandable detail rows.
-9. **Human selection** — placeholder for future route selection and execution plan generation.
-10. **Trace** — `CollapsibleSection` wrapping `TraceTimeline`. Collapsed by default.
+5. **Routes** — `CampaignRouteCard` grid with rank, score, relative label (e.g. "Strongest overall"), a "Recommended" badge on the recommended route, and primary/secondary risk taxonomy per route.
+6. **Creative Director Review** — on-demand panel; triggers `POST /api/campaign/creative-review` and shows per-route creative critique (strengths, weaknesses, sharper alternatives) framed as expert critique, not research.
+7. **Simulations** — `CollapsibleSection` wrapping `PersonaSimulationPanel`. Collapsed by default.
+8. **Risks** — `CollapsibleSection` wrapping pre-mortem review with route-level risks and overall risks.
+9. **Comparison matrix** — `RouteComparisonTable` with sortable scores, badges, risk taxonomy, and expandable detail rows.
+10. **Human selection + execution plan** — the user selects a route and explicitly clicks "Generate execution plan," which calls `POST /api/campaign/execution-plan`. The system recommendation is guidance only and is never auto-applied.
+11. **Export** — `ExportPanel` calls `POST /api/campaign/export` to download the strategy report as Markdown, HTML, or a PPTX route deck.
+12. **Run Library** — `RunLibraryPanel` saves/loads/exports completed runs to/from browser `localStorage` (capped at 25 entries), independent of the server.
+13. **Trace** — `CollapsibleSection` wrapping `TraceTimeline`. Collapsed by default.
 
-No persistence, no streaming, no PDF export, no auth in v1.
+No server-side persistence, no streaming, no PDF export, no auth in v1. The Run Library is the one exception: it persists completed runs in the browser's `localStorage` only.
 
 ## Next steps
 
-Human selection, execution plan generation, and export artifact remain not implemented. These require human gate integration before final plan synthesis.
+All eleven sprint workflow stages (through `export_artifact`) and the on-demand Creative Director Review stage are implemented. Remaining v1 boundaries — no server-side persistence/database, no auth, no billing, no PDF export — are intentional per the constitution, not gaps.

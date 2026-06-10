@@ -11,10 +11,14 @@ interface ExportPanelProps {
 export function ExportPanel({ exportInput }: ExportPanelProps) {
   const [isExportingMd, setIsExportingMd] = useState(false);
   const [isExportingHtml, setIsExportingHtml] = useState(false);
+  const [isExportingPptx, setIsExportingPptx] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleExport(format: "markdown" | "html") {
-    const setter = format === "markdown" ? setIsExportingMd : setIsExportingHtml;
+  const isExporting = isExportingMd || isExportingHtml || isExportingPptx;
+
+  async function handleExport(format: "markdown" | "html" | "pptx") {
+    const setter =
+      format === "markdown" ? setIsExportingMd : format === "html" ? setIsExportingHtml : setIsExportingPptx;
     setter(true);
     setError(null);
 
@@ -39,7 +43,9 @@ export function ExportPanel({ exportInput }: ExportPanelProps) {
       const filename =
         format === "markdown"
           ? "campaign-strategy-report.md"
-          : "campaign-strategy-report.html";
+          : format === "html"
+            ? "campaign-strategy-report.html"
+            : "campaign-route-deck.pptx";
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -71,7 +77,7 @@ export function ExportPanel({ exportInput }: ExportPanelProps) {
           <button
             type="button"
             onClick={() => handleExport("markdown")}
-            disabled={isExportingMd || isExportingHtml}
+            disabled={isExporting}
             className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:border-stone-500 hover:text-stone-950 disabled:cursor-wait disabled:opacity-60"
           >
             {isExportingMd ? "Exporting…" : "Export Markdown"}
@@ -79,10 +85,18 @@ export function ExportPanel({ exportInput }: ExportPanelProps) {
           <button
             type="button"
             onClick={() => handleExport("html")}
-            disabled={isExportingMd || isExportingHtml}
+            disabled={isExporting}
             className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:border-stone-500 hover:text-stone-950 disabled:cursor-wait disabled:opacity-60"
           >
             {isExportingHtml ? "Exporting…" : "Export HTML"}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExport("pptx")}
+            disabled={isExporting}
+            className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:border-stone-500 hover:text-stone-950 disabled:cursor-wait disabled:opacity-60"
+          >
+            {isExportingPptx ? "Exporting…" : "Export Route Deck (PPTX)"}
           </button>
         </div>
 
@@ -94,7 +108,8 @@ export function ExportPanel({ exportInput }: ExportPanelProps) {
 
         <p className="text-xs leading-5 text-stone-400">
           Exported files include synthetic-research caveats, legal/substantiation checklists, and
-          a disclaimer that scores are strategic estimates, not predictions. No PDF export in v1.
+          a disclaimer that scores are strategic estimates, not predictions. The PPTX route deck
+          repeats the same caveats on every slide for offline circulation. No PDF export in v1.
         </p>
       </CardContent>
     </Card>

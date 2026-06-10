@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { buildDecisionSummary } from "@/lib/workflow/build-decision-summary";
+import { deriveRiskTaxonomy } from "@/lib/workflow/derive-risk-taxonomy";
 import {
   buildMockCampaignRun,
   campaignRoutes as MOCK_ROUTES,
@@ -81,8 +82,20 @@ describe("buildDecisionSummary – tradeoff and risk", () => {
       "Channel risk",
       "Execution risk",
       "Brand dilution risk",
+      "Audience risk",
+      "Cultural risk",
     ];
     expect(validRiskTypes).toContain(summary.riskType);
+  });
+
+  it("derives riskType from the same taxonomy as deriveRiskTaxonomy (single source of truth)", () => {
+    const input = buildInput();
+    const summary = buildDecisionSummary(input);
+    const taxonomy = deriveRiskTaxonomy(input);
+
+    const recommendedTaxonomy = taxonomy.find((t) => t.routeId === summary.recommendedRouteId);
+    expect(recommendedTaxonomy).toBeDefined();
+    expect(summary.riskType).toBe(recommendedTaxonomy!.primaryRiskType);
   });
 });
 

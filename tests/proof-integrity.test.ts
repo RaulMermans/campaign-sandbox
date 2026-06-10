@@ -6,8 +6,9 @@ import { validateProofIntegrity } from "@/lib/workflow/quality/validate-proof-in
 import {
   normalizedBrief as MOCK_BRIEF,
   campaignRoutes as MOCK_ROUTES,
+  premortemReview as MOCK_PREMORTEM,
 } from "@/lib/workflow/mock-campaign-run";
-import type { NormalizedCampaignBrief, CampaignRoute } from "@/lib/schemas/campaign";
+import type { NormalizedCampaignBrief, CampaignRoute, PremortemReview } from "@/lib/schemas/campaign";
 
 function briefWithoutProof(): NormalizedCampaignBrief {
   return {
@@ -143,5 +144,75 @@ describe("validateProofIntegrity – execution plan", () => {
 
     const assetIssues = issues.filter((i) => i.field.includes("assetList"));
     expect(assetIssues.length).toBeGreaterThan(0);
+  });
+});
+
+function premortemWithFakeProof(): PremortemReview {
+  return {
+    ...MOCK_PREMORTEM,
+    summary: "Risk review covering all routes — mitigate weak resonance with real customer testimonials.",
+    routeRisks: MOCK_PREMORTEM.routeRisks.map((rr, i) =>
+      i === 0
+        ? { ...rr, mitigations: ["Feature real customer testimonials and verified customer reviews up front"] }
+        : rr,
+    ),
+    topFailureRisks: [
+      {
+        ...MOCK_PREMORTEM.topFailureRisks[0],
+        mitigation: "Counter genericity by sourcing user-generated content and customer names and photos",
+      },
+      ...MOCK_PREMORTEM.topFailureRisks.slice(1),
+    ],
+  };
+}
+
+describe("validateProofIntegrity – pre-mortem review", () => {
+  it("flags unsupported testimonial language in risk summary", () => {
+    const issues = validateProofIntegrity({
+      normalizedBrief: briefWithoutProof(),
+      premortemReview: premortemWithFakeProof(),
+    });
+
+    const summaryIssues = issues.filter((i) => i.field === "premortemReview.summary");
+    expect(summaryIssues.length).toBeGreaterThan(0);
+    expect(summaryIssues[0].severity).toBe("error");
+  });
+
+  it("flags unsupported proof language in route mitigations", () => {
+    const issues = validateProofIntegrity({
+      normalizedBrief: briefWithoutProof(),
+      premortemReview: premortemWithFakeProof(),
+    });
+
+    const mitigationIssues = issues.filter((i) => i.field.includes("routeRisks") && i.field.includes("mitigations"));
+    expect(mitigationIssues.length).toBeGreaterThan(0);
+  });
+
+  it("flags unsupported proof language in top failure risk mitigations", () => {
+    const issues = validateProofIntegrity({
+      normalizedBrief: briefWithoutProof(),
+      premortemReview: premortemWithFakeProof(),
+    });
+
+    const failureIssues = issues.filter((i) => i.field === "premortemReview.topFailureRisks[].mitigation");
+    expect(failureIssues.length).toBeGreaterThan(0);
+  });
+
+  it("passes the mock pre-mortem review, which uses no unsupported proof language", () => {
+    const issues = validateProofIntegrity({
+      normalizedBrief: briefWithoutProof(),
+      premortemReview: MOCK_PREMORTEM,
+    });
+
+    expect(issues).toHaveLength(0);
+  });
+
+  it("allows pre-mortem proof language when the brief substantiates it", () => {
+    const issues = validateProofIntegrity({
+      normalizedBrief: briefWithProof(),
+      premortemReview: premortemWithFakeProof(),
+    });
+
+    expect(issues).toHaveLength(0);
   });
 });

@@ -49,6 +49,8 @@ const RISK_TYPE_COLORS: Record<string, string> = {
   "Channel risk": "bg-orange-100 text-orange-700",
   "Execution risk": "bg-amber-100 text-amber-700",
   "Brand dilution risk": "bg-stone-200 text-stone-600",
+  "Audience risk": "bg-teal-100 text-teal-700",
+  "Cultural risk": "bg-rose-100 text-rose-700",
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -132,9 +134,16 @@ export function RouteComparisonTable({
                     <td className="py-3">
                       {taxonomy ? (
                         <div className="grid gap-1">
-                          <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${RISK_TYPE_COLORS[taxonomy.primaryRiskType] ?? ""}`}>
-                            {taxonomy.primaryRiskType}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-1">
+                            <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${RISK_TYPE_COLORS[taxonomy.primaryRiskType] ?? ""}`}>
+                              {taxonomy.primaryRiskType}
+                            </span>
+                            {taxonomy.secondaryRiskType ? (
+                              <span className={`rounded px-1.5 py-0.5 text-xs font-medium opacity-70 ${RISK_TYPE_COLORS[taxonomy.secondaryRiskType] ?? ""}`}>
+                                + {taxonomy.secondaryRiskType}
+                              </span>
+                            ) : null}
+                          </div>
                           <span className={`text-xs font-medium ${SEVERITY_COLORS[taxonomy.severity] ?? ""}`}>
                             {taxonomy.severity}
                           </span>

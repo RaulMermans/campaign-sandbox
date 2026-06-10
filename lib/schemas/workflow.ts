@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   campaignExecutionPlanSchema,
   campaignRouteSchema,
+  creativeDirectorReviewSchema,
   humanSelectionSchema,
   normalizedCampaignBriefSchema,
   personaSchema,
@@ -47,6 +48,7 @@ export const campaignRunSchema = z
     scores: z.array(routeScoreSchema).length(3),
     premortem: premortemReviewSchema,
     comparisonMatrix: routeComparisonMatrixSchema,
+    creativeDirectorReview: creativeDirectorReviewSchema.optional(),
     humanSelection: humanSelectionSchema.optional(),
     executionPlan: campaignExecutionPlanSchema.optional(),
     traceEvents: z.array(traceEventSchema).min(1),

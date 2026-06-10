@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 import { detectFileType, validateFileSize, MAX_FILE_SIZE_BYTES, MAX_EXTRACTED_CHARS } from "@/lib/extract/file-validation";
 import { extractTxtText } from "@/lib/extract/extract-txt-text";
 import { extractPptxText } from "@/lib/extract/extract-pptx-text";
+import { extractPdfText } from "@/lib/extract/extract-pdf-text";
 import { extractBriefText } from "@/lib/extract/extract-brief-text";
+import { buildSelectableTextPdf, buildEmptyTextPdf, buildCorruptPdf } from "./fixtures/build-test-pdf";
 import JSZip from "jszip";
 
 // ---------------------------------------------------------------------------
@@ -133,6 +135,41 @@ describe("extractPptxText", () => {
 });
 
 // ---------------------------------------------------------------------------
+// PDF extraction
+// ---------------------------------------------------------------------------
+
+describe("extractPdfText", () => {
+  it("extracts text from a selectable-text PDF", async () => {
+    const buffer = buildSelectableTextPdf("Hello Campaign Brief");
+    const result = await extractPdfText(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer);
+    expect(result.text).toContain("Hello Campaign Brief");
+    expect(result.pages).toBe(1);
+    expect(result.loadFailed).toBeFalsy();
+    expect(result.parseFailed).toBeFalsy();
+  });
+
+  it("returns empty text with OCR warning for image-only PDFs", async () => {
+    const buffer = buildEmptyTextPdf();
+    const result = await extractPdfText(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer);
+    expect(result.text).toBe("");
+    expect(result.loadFailed).toBeFalsy();
+    expect(result.parseFailed).toBeFalsy();
+    expect(result.warnings.some((w) => w.toLowerCase().includes("ocr"))).toBe(true);
+  });
+
+  it("returns a sanitized parseFailed result for corrupted PDFs", async () => {
+    const buffer = buildCorruptPdf();
+    const result = await extractPdfText(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer);
+    expect(result.text).toBe("");
+    expect(result.parseFailed).toBe(true);
+    for (const warning of result.warnings) {
+      expect(warning).not.toMatch(/at \w+ \(/);
+      expect(warning).not.toMatch(/node_modules/);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // extractBriefText — integration
 // ---------------------------------------------------------------------------
 
@@ -182,6 +219,38 @@ describe("extractBriefText", () => {
     const file = new File(["A brief."], "brief.txt", { type: "text/plain" });
     const result = await extractBriefText(file);
     expect(result.errorCode).toBeUndefined();
+  });
+
+  it("extracts text from a selectable-text PDF end-to-end", async () => {
+    const pdfBuffer = buildSelectableTextPdf("Luma Pantry brief content");
+    const file = new File([new Uint8Array(pdfBuffer)], "brief.pdf", { type: "application/pdf" });
+    const result = await extractBriefText(file);
+    expect(result.fileType).toBe("pdf");
+    expect(result.extractedText).toContain("Luma Pantry brief content");
+    expect(result.errorCode).toBeUndefined();
+    expect(result.stats.pages).toBe(1);
+  });
+
+  it("returns EMPTY_EXTRACTION for image-only/empty PDFs with OCR-not-supported warning", async () => {
+    const pdfBuffer = buildEmptyTextPdf();
+    const file = new File([new Uint8Array(pdfBuffer)], "scanned.pdf", { type: "application/pdf" });
+    const result = await extractBriefText(file);
+    expect(result.extractedText).toBe("");
+    expect(result.errorCode).toBe("EMPTY_EXTRACTION");
+    expect(result.warnings.some((w) => w.toLowerCase().includes("ocr"))).toBe(true);
+  });
+
+  it("returns EXTRACTION_FAILED with sanitized message for corrupted PDFs", async () => {
+    const pdfBuffer = buildCorruptPdf();
+    const file = new File([new Uint8Array(pdfBuffer)], "corrupt.pdf", { type: "application/pdf" });
+    const result = await extractBriefText(file);
+    expect(result.extractedText).toBe("");
+    expect(result.errorCode).toBe("EXTRACTION_FAILED");
+    for (const warning of result.warnings) {
+      expect(warning).not.toMatch(/at \w+ \(/);
+      expect(warning).not.toMatch(/Error:/);
+      expect(warning).not.toMatch(/node_modules/);
+    }
   });
 
   it("does not expose raw stack traces in warnings", async () => {

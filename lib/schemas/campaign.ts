@@ -296,6 +296,82 @@ export const routeComparisonMatrixSchema = z
     }
   });
 
+// Creative Director Review — a bounded, schema-validated critique stage that
+// sharpens route naming, ownability, and creative quality before human selection.
+// This is expert creative critique, not market research or audience validation.
+export const creativeDirectorRouteReviewSchema = z
+  .object({
+    routeId: z.string().min(1),
+    routeName: z.string().min(1),
+    originalityScore: boundedScoreSchema,
+    ownabilityScore: boundedScoreSchema,
+    culturalSharpnessScore: boundedScoreSchema,
+    visualPotentialScore: boundedScoreSchema,
+    conversionClarityScore: boundedScoreSchema,
+    genericityRisk: z.enum(["low", "medium", "high"]),
+    verdict: z.enum(["keep", "sharpen", "merge", "kill"]),
+    why: z.string().min(1),
+    whatFeelsGeneric: z.array(z.string().min(1)),
+    whatFeelsOwnable: z.array(z.string().min(1)),
+    sharperNameOptions: z.array(z.string().min(1)).min(3).max(6),
+    sharperKillerLines: z.array(z.string().min(1)).min(3).max(6),
+    creativeDirectorNotes: z.array(z.string().min(1)).min(1),
+  })
+  .strict();
+
+export const creativeDirectorReviewSchema = z
+  .object({
+    overallVerdict: z.string().min(1),
+    strongestRouteId: z.string().min(1),
+    routeReviews: z.array(creativeDirectorRouteReviewSchema).min(3),
+    crossRouteRecommendations: z.array(z.string().min(1)).min(1),
+    routesToAvoidOrMerge: z.array(
+      z
+        .object({
+          routeId: z.string().min(1),
+          reason: z.string().min(1),
+        })
+        .strict(),
+    ),
+    finalRecommendation: z.string().min(1),
+    caveat: z.string().min(1),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    const ids = new Set(value.routeReviews.map((r) => r.routeId));
+    if (ids.size !== value.routeReviews.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["routeReviews"],
+        message: "Creative director route reviews must include unique route IDs.",
+      });
+    }
+    if (!ids.has(value.strongestRouteId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["strongestRouteId"],
+        message: "strongestRouteId must reference a route covered in routeReviews.",
+      });
+    }
+    if (!value.caveat.toLowerCase().includes("not") || !value.caveat.toLowerCase().includes("research")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["caveat"],
+        message: "caveat must clarify this is expert creative critique, not market research.",
+      });
+    }
+  });
+
+export const creativeDirectorReviewOutputSchema = z
+  .object({
+    review: creativeDirectorReviewSchema,
+  })
+  .strict();
+
+export type CreativeDirectorRouteReview = z.infer<typeof creativeDirectorRouteReviewSchema>;
+export type CreativeDirectorReview = z.infer<typeof creativeDirectorReviewSchema>;
+export type CreativeDirectorReviewOutput = z.infer<typeof creativeDirectorReviewOutputSchema>;
+
 export const humanSelectionSchema = z
   .object({
     selectedRouteId: z.string().min(1),
@@ -506,6 +582,7 @@ export const campaignRunOutputSchema = z
     scores: z.array(routeScoreSchema).min(1),
     premortemReview: premortemReviewSchema,
     comparison: routeComparisonMatrixSchema,
+    creativeDirectorReview: creativeDirectorReviewSchema.optional(),
     traceEvents: z.array(traceEventSchema).min(1),
   })
   .strict();
@@ -523,10 +600,11 @@ export const campaignExportInputSchema = z
     scores: z.array(routeScoreSchema).min(1),
     premortemReview: premortemReviewSchema,
     comparison: routeComparisonMatrixSchema,
+    creativeDirectorReview: creativeDirectorReviewSchema.optional(),
     selectedRouteId: z.string().optional(),
     executionPlan: campaignExecutionPlanSchema.optional(),
     traceEvents: z.array(traceEventSchema).optional(),
-    format: z.enum(["markdown", "html"]).default("markdown"),
+    format: z.enum(["markdown", "html", "pptx"]).default("markdown"),
   })
   .strict();
 

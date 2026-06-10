@@ -93,11 +93,12 @@ Even when all eight implemented stages run (six with a real LLM provider, two de
 ## Proof Integrity Guardrail safety rules
 
 - The proof integrity guardrail is deterministic. It does not call an LLM.
-- It checks route `proofMechanism`, `activationIdeas`, `assetIdeas`, and execution plan `strategicSummary`, `launchPhases`, `channelPlan`, and `assetList` for unsupported claims that imply real customer testimonials, user-generated content, or verified customer reviews.
+- It checks route `proofMechanism`, `activationIdeas`, `assetIdeas`; `premortemReview` (`summary`, `routeRisks[].risks`, `routeRisks[].mitigations`, `overallRisks`, `decisionWarnings`, `topFailureRisks[]`); and execution plan `strategicSummary`, `launchPhases`, `channelPlan`, and `assetList` for unsupported claims that imply real customer testimonials, user-generated content, or verified customer reviews.
 - It is brief-aware: if the brief explicitly provides evidence of customer proof (testimonials, case studies, UGC, customer reviews), all proof-related language is permitted.
-- Safe language qualifiers that allow proof-adjacent copy: `"testimonial-style creative"`, `"if available"`, `"customer proof if available"`.
+- Safe language qualifiers that allow proof-adjacent copy: `"testimonial-style creative"`, `"if available"`, `"customer proof if available"`, and safety-caveat framing such as `"must not be presented as real customer research"` (the constitution's own synthetic-data disclaimer language, not a proof claim).
 - Issues are typed (`ProofIntegrityIssue`): field, severity (`error`), message. Raw model output is never propagated.
-- The guardrail is an advisory layer in v1 — it flags issues for the system and logs them as trace-compatible data, but does not block plan generation automatically. It is used to validate prompt compliance and catch regression.
+- **Stage-level enforcement:** `generate_campaign_routes`, `generate_execution_plan`, and `premortem_review` each call the guardrail after schema validation (mock and OpenAI paths). On the OpenAI path, a blocking finding on the first attempt triggers one repair retry with an injected repair instruction; a finding on the second attempt throws `WorkflowValidationError`. On the mock path, a blocking finding throws `WorkflowValidationError` immediately (mock fixtures are expected to be clean).
+- **Export-boundary enforcement:** `POST /api/campaign/export` re-runs the guardrail across `normalizedBrief`, `routes`, `executionPlan`, and `premortemReview` immediately before building the report (for all formats, including `pptx`). If any blocking issue is found — including in older or manually-edited saved runs that predate stage-level enforcement — the export is rejected with `422` and the response includes the failing field paths. Raw model/report content is never included in the error payload.
 
 ## Deterministic derivation safety rules (`buildDecisionSummary`, `deriveRiskTaxonomy`, `deriveRouteSimulationSummaries`)
 

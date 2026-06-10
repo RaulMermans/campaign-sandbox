@@ -16,6 +16,7 @@ import { simulateReactionsStage } from "@/lib/workflow/stages/simulate-reactions
 import { scoreRoutesStage } from "@/lib/workflow/stages/score-routes-stage";
 import { premortemReviewStage } from "@/lib/workflow/stages/premortem-review";
 import { compareRoutesStage } from "@/lib/workflow/stages/compare-routes-stage";
+import { creativeDirectorReviewStage } from "@/lib/workflow/stages/creative-director-review";
 import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
 import { LlmProviderError, LlmJsonParseError, LlmSchemaValidationError, LlmTimeoutError } from "@/lib/llm/errors";
 import { CampaignRunStageError } from "@/lib/workflow/run-errors";
@@ -264,6 +265,17 @@ export async function POST(request: Request): Promise<Response> {
     );
     traceEvents.push(comparisonResult.traceEvent);
 
+    // 9. Creative director review — bounded creative critique before human selection
+    const creativeReviewResult = await runStage("creative_director_review", () =>
+      creativeDirectorReviewStage({
+        normalizedBrief: normalizeResult.normalizedBrief,
+        strategicTension: tensionResult.strategicTension,
+        routes,
+        runId,
+      }),
+    );
+    traceEvents.push(creativeReviewResult.traceEvent);
+
     const output = campaignRunOutputSchema.parse({
       runId,
       status: "completed",
@@ -275,6 +287,7 @@ export async function POST(request: Request): Promise<Response> {
       scores: scoresResult.scores,
       premortemReview: premortemResult.review,
       comparison: comparisonResult.comparison,
+      creativeDirectorReview: creativeReviewResult.review,
       traceEvents,
     });
 

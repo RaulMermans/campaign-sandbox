@@ -11,12 +11,15 @@ This is not an AI campaign generator. It is a workflow for creative teams making
 - **Intake Mode / Results Workspace Mode** — the UI now switches layouts. Before a run: editorial two-column intake with paste/upload support. After a run: compact top bar + full-width results workspace with sticky section nav and a brief drawer for re-running.
 - **File brief import** — upload a PDF, PPTX, or TXT file. Text is extracted server-side, shown in an editable preview, and only sent to the LLM when you click Run. No file storage, no OCR, no auto-run.
 - **Skill layer v2** — `<!-- skill:name -->` marker replacement at runtime via `composePrompt()`. Skills are bounded prompt instructions, not autonomous agents.
-- **Decision Cockpit** — deterministic summary after run completion: recommended route, why it wins, runner-up, tradeoff, typed risk badge, close-score notice.
+- **Decision Cockpit** — deterministic summary after run completion: recommended route, why it wins, runner-up, tradeoff, typed risk badge, close-score notice. `riskType` shares a single source of truth with the per-route risk taxonomy.
 - **Route Quality Gate v1** — deterministic validator after route generation. Flags generic names, vague killer lines, thin visual worlds, unsupported proof claims. Retries once with a focused repair prompt on blocking issues.
-- **Proof Integrity Guardrail** — flags "real customer testimonials" and similar unsupported claims in routes and execution plan unless the brief provides evidence.
-- **Risk Taxonomy** — six typed risk categories (Creative / Proof / Conversion / Channel / Execution / Brand dilution) derived deterministically per route.
+- **Proof Integrity Guardrail** — flags "real customer testimonials" and similar unsupported claims. Enforced at `generate_campaign_routes`, `generate_execution_plan`, and `premortem_review` (retry-and-repair), and again at the `/api/campaign/export` boundary across all export formats (`422` if a saved or edited run still contains unsupported proof claims).
+- **Risk Taxonomy** — eight typed risk categories (Execution / Conversion / Brand dilution / Channel / Proof / Audience / Cultural / Creative), each route classified with a primary risk type plus an optional secondary risk type, derived deterministically.
 - **Route Simulation Summaries** — derived averages + strongest/weakest persona per route, shown before individual persona cards.
-- **Export v2** — Markdown and HTML reports now include Decision Summary, risk taxonomy, and route simulation synthesis tables.
+- **Results workspace hierarchy** — route cards show a "Recommended" badge on the system-recommended route; risk taxonomy is shown consistently across the cockpit, route cards, and comparison table.
+- **Creative Director Review** — on-demand expert creative critique per route (strengths, weaknesses, sharper alternatives), explicitly framed as critique, not market research.
+- **Run Library** — save, reload, export, and import completed runs from a browser-local library (`localStorage`, capped at 25 entries). No accounts, no server-side storage.
+- **Export v2** — export the strategy report as Markdown, HTML, or a PPTX route deck (one slide per route, repeating the same synthetic-data and "human selection required" caveats as the other formats). All formats now include Decision Summary, risk taxonomy, and route simulation synthesis tables, and are blocked with `422` if the underlying run fails the Proof Integrity Guardrail.
 
 ## Stack
 
@@ -130,15 +133,16 @@ The app builds and runs with no env vars set (defaults to mock mode). See `.env.
 |---|---|
 | `normalize_brief` | **Real (optional)** via server-side env |
 | `extract_strategic_tension` | **Real (optional)** via server-side env |
-| `generate_campaign_routes` | **Real (optional)** via server-side env |
+| `generate_campaign_routes` | **Real (optional)** via server-side env — quality gate + proof integrity guardrail |
+| `creative_director_review` | **Real (optional)** via server-side env — on-demand, not part of the orchestrated run |
 | `build_personas` | **Real (optional)** via server-side env |
 | `simulate_reactions` | **Real (optional)** via server-side env |
 | `score_routes` | **Deterministic** (no LLM, no env vars needed) |
-| `premortem_review` | **Real (optional)** via server-side env |
+| `premortem_review` | **Real (optional)** via server-side env — proof integrity guardrail |
 | `compare_routes` | **Deterministic** (no LLM, no env vars needed) |
-| `human_selection` | Local explicit user action (UI only, no persistence) |
-| `generate_execution_plan` | **Real (optional)** via server-side env — requires explicit human route selection |
-| `export_artifact` | **Deterministic** Markdown/HTML (no LLM, no PDF, no persistence) |
+| `human_selection` | Local explicit user action (UI only; optional Run Library persistence in `localStorage`) |
+| `generate_execution_plan` | **Real (optional)** via server-side env — requires explicit human route selection; proof integrity guardrail |
+| `export_artifact` | **Deterministic** Markdown/HTML/PPTX (no LLM, no PDF, no server-side persistence; export-boundary proof integrity guardrail) |
 
 LLM stages require `CAMPAIGN_SANDBOX_LLM_PROVIDER=openai` and `OPENAI_API_KEY`. Deterministic stages (`score_routes`, `compare_routes`) work in all modes without any env vars. The app builds and runs fully without any env vars (mock mode).
 
@@ -157,6 +161,8 @@ All scores and comparison dimensions are bounded qualitative strategic estimates
 - `app/api/campaign/premortem/` — Pre-mortem risk review API route.
 - `app/api/campaign/comparison/` — Deterministic comparison API route (no LLM).
 - `app/api/campaign/extract-brief/` — File extraction API (PDF/PPTX/TXT). No file storage, no LLM.
+- `app/api/campaign/creative-review/` — On-demand Creative Director Review API route.
+- `app/api/campaign/export/` — Deterministic export API route (Markdown/HTML/PPTX). Re-runs the Proof Integrity Guardrail at the export boundary.
 - `components/` — UI, brief, route, simulation, trace, intake, and layout components.
 - `components/intake/` — Intake Mode components: brief intake panel, file upload panel, extracted brief preview.
 - `components/layout/` — App shell (Intake/Results mode switcher), results workspace, brief drawer.
@@ -170,7 +176,8 @@ All scores and comparison dimensions are bounded qualitative strategic estimates
 - `lib/workflow/quality/` — Route Quality Gate and Proof Integrity Guardrail (deterministic validators).
 - `lib/scoring/` — Deterministic route scoring and comparison helpers.
 - `lib/traces/` — Trace event factory.
-- `lib/export/` — Deterministic export renderers (Markdown, HTML).
+- `lib/export/` — Deterministic export renderers (Markdown, HTML, PPTX route deck).
+- `lib/storage/` — Browser-local Run Library persistence (`localStorage`, no server-side storage).
 - `lib/prompts/` — `composePrompt()` skill-marker replacement utility.
 - `prompts/` — Bounded LLM prompt files (include injected skill sections).
 - `docs/` — Architecture, prompts, safety, observability, and deployment docs.
@@ -201,6 +208,6 @@ pnpm dev -- -p 3001
 
 ## Next Build Steps
 
-- Add persisted campaign runs.
-- Add PDF export option.
+- The Run Library provides browser-local persistence for completed runs; server-side persisted campaign runs (with accounts/sharing) remain out of scope for v1.
+- Add PDF export option (PPTX route deck export is available today).
 - Add Trigger.dev orchestration when background execution is needed.

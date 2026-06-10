@@ -66,9 +66,21 @@ export async function extractBriefText(file: File): Promise<BriefExtractionResul
 
     if (fileType === "pdf") {
       const result = await extractPdfText(buffer);
-      rawText = result.text;
       pages = result.pages;
       warnings.push(...result.warnings);
+
+      if (result.loadFailed || result.parseFailed) {
+        return {
+          fileName,
+          fileType,
+          extractedText: "",
+          warnings,
+          stats: { characters: 0, pages },
+          errorCode: "EXTRACTION_FAILED",
+        };
+      }
+
+      rawText = result.text;
     } else {
       const result = await extractPptxText(buffer);
       rawText = result.text;

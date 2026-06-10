@@ -5,11 +5,13 @@ import { AppShell } from "@/components/layout/app-shell";
 import { BriefDrawer } from "@/components/layout/brief-drawer";
 import { BriefIntakePanel } from "@/components/intake/brief-intake-panel";
 import { ResultsWorkspace } from "@/components/layout/results-workspace";
+import { RunLibraryPanel } from "@/components/run/run-library-panel";
 import type {
   CampaignExecutionPlan,
   CampaignRunOutput,
 } from "@/lib/schemas/campaign";
 import type { TraceEvent } from "@/lib/schemas/trace";
+import type { SavedCampaignRun } from "@/lib/storage/run-library";
 
 const WORKFLOW_STEPS = [
   "Normalizing brief",
@@ -41,7 +43,19 @@ export default function Home() {
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
 
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+
   const mode = run || isRunning ? "results" : "intake";
+
+  function handleLoadSavedRun(saved: SavedCampaignRun) {
+    setError(null);
+    setIsRunning(false);
+    setRun(saved.run);
+    setSelectedRouteId(saved.selectedRouteId ?? null);
+    setExecutionPlan(saved.executionPlan ?? null);
+    setExecutionTraceEvent(null);
+    setPlanError(null);
+  }
 
   function handleNewRun() {
     setRun(null);
@@ -155,6 +169,7 @@ export default function Home() {
       onNewRun={mode === "results" ? handleNewRun : undefined}
       hasExecutionPlan={!!executionPlan}
       onExport={executionPlan ? scrollToExport : undefined}
+      onOpenLibrary={() => setIsLibraryOpen(true)}
       isRunning={isRunning}
     >
       {mode === "intake" ? (
@@ -281,6 +296,16 @@ export default function Home() {
           ) : null}
         </>
       )}
+
+      {isLibraryOpen ? (
+        <RunLibraryPanel
+          onClose={() => setIsLibraryOpen(false)}
+          currentRun={run}
+          currentSelectedRouteId={selectedRouteId}
+          currentExecutionPlan={executionPlan}
+          onLoadRun={handleLoadSavedRun}
+        />
+      ) : null}
     </AppShell>
   );
 }

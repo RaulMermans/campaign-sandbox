@@ -9,6 +9,9 @@ interface DecisionCockpitProps {
   exportReady: boolean;
 }
 
+// Mirrors RISK_TYPE_COLORS in route-comparison-table.tsx — the same risk type
+// should always render in the same color, whether shown in the cockpit, the
+// comparison table, or the route-specific risk cards.
 const RISK_COLORS: Record<RiskType, string> = {
   "Creative risk": "bg-purple-100 text-purple-800",
   "Proof risk": "bg-red-100 text-red-800",
@@ -16,6 +19,8 @@ const RISK_COLORS: Record<RiskType, string> = {
   "Channel risk": "bg-orange-100 text-orange-800",
   "Execution risk": "bg-amber-100 text-amber-800",
   "Brand dilution risk": "bg-stone-200 text-stone-700",
+  "Audience risk": "bg-teal-100 text-teal-800",
+  "Cultural risk": "bg-rose-100 text-rose-800",
 };
 
 export function DecisionCockpit({ summary, selectedRouteId, exportReady }: DecisionCockpitProps) {

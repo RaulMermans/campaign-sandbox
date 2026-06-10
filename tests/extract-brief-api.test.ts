@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { POST } from "@/app/api/campaign/extract-brief/route";
+import { buildSelectableTextPdf, buildEmptyTextPdf, buildCorruptPdf } from "./fixtures/build-test-pdf";
 
 function makeFormDataRequest(file: File): Request {
   const formData = new FormData();
@@ -98,5 +99,48 @@ describe("POST /api/campaign/extract-brief — TXT extraction", () => {
     const body = await res.json() as { error: string; code: string };
     expect(body.error).toBeTruthy();
     expect(body.code).toBe("EMPTY_EXTRACTION");
+  });
+});
+
+describe("POST /api/campaign/extract-brief — PDF extraction", () => {
+  it("returns 200 with extractedText for selectable-text PDF", async () => {
+    const pdfBuffer = buildSelectableTextPdf("Quarterly campaign brief notes");
+    const file = new File([new Uint8Array(pdfBuffer)], "brief.pdf", { type: "application/pdf" });
+    const res = await POST(makeFormDataRequest(file));
+    expect(res.status).toBe(200);
+    const body = await res.json() as { fileType: string; extractedText: string; code?: string };
+    expect(body.fileType).toBe("pdf");
+    expect(body.extractedText).toContain("Quarterly campaign brief notes");
+    expect(body.code).toBeUndefined();
+  });
+
+  it("returns 422 EMPTY_EXTRACTION with OCR-not-supported message for image-only PDFs", async () => {
+    const pdfBuffer = buildEmptyTextPdf();
+    const file = new File([new Uint8Array(pdfBuffer)], "scanned.pdf", { type: "application/pdf" });
+    const res = await POST(makeFormDataRequest(file));
+    expect(res.status).toBe(422);
+    const body = await res.json() as { error: string; code: string };
+    expect(body.code).toBe("EMPTY_EXTRACTION");
+    expect(body.error.toLowerCase()).toContain("ocr is not supported");
+  });
+
+  it("returns 422 EXTRACTION_FAILED with sanitized message for corrupted PDFs", async () => {
+    const pdfBuffer = buildCorruptPdf();
+    const file = new File([new Uint8Array(pdfBuffer)], "corrupt.pdf", { type: "application/pdf" });
+    const res = await POST(makeFormDataRequest(file));
+    expect(res.status).toBe(422);
+    const body = await res.json() as { error: string; code: string };
+    expect(body.code).toBe("EXTRACTION_FAILED");
+    expect(body.error).toBe("PDF extraction failed in this environment. Try PPTX/TXT or paste the brief manually.");
+  });
+
+  it("does not expose stack traces or internal paths for PDF errors", async () => {
+    const pdfBuffer = buildCorruptPdf();
+    const file = new File([new Uint8Array(pdfBuffer)], "corrupt.pdf", { type: "application/pdf" });
+    const res = await POST(makeFormDataRequest(file));
+    const text = await res.text();
+    expect(text).not.toMatch(/at \w+ \(/);
+    expect(text).not.toMatch(/node_modules/);
+    expect(text).not.toMatch(/Error:/);
   });
 });

@@ -156,6 +156,66 @@ describe("validateRouteQuality – vague failure mode", () => {
   });
 });
 
+describe("validateRouteQuality – overused creative shorthand flagged as warnings", () => {
+  const overusedWords = [
+    "elevated",
+    "effortless",
+    "ritual",
+    "reset",
+    "curation",
+    "essence",
+    "journey",
+    "unlock",
+    "transform",
+    "reimagine",
+    "experience",
+    "premium",
+    "urban escape",
+  ];
+
+  for (const word of overusedWords) {
+    it(`flags "${word}" in a route name as a non-blocking warning`, () => {
+      const route = baseRoute({ name: `The ${word} Project` });
+      const issues = validateRouteQuality([route]);
+      const nameWarnings = issues.filter(
+        (i) => i.field === "name" && i.severity === "warning" && i.message.toLowerCase().includes(word),
+      );
+      expect(nameWarnings.length).toBeGreaterThan(0);
+    });
+  }
+
+  it("flags overused language in killer lines as a warning", () => {
+    const route = baseRoute({ killerLine: "An elevated experience for every journey." });
+    const issues = validateRouteQuality([route]);
+    const killerLineWarnings = issues.filter((i) => i.field === "killerLine" && i.severity === "warning");
+    expect(killerLineWarnings.length).toBeGreaterThan(0);
+    expect(killerLineWarnings[0]?.message).toMatch(/elevated/i);
+  });
+
+  it("does not flag overused language for names and killer lines that avoid it", () => {
+    const route = baseRoute({ name: "The 7PM Handoff", killerLine: "Out the door by seven, no negotiation." });
+    const issues = validateRouteQuality([route]);
+    const overusedIssues = issues.filter(
+      (i) => (i.field === "name" || i.field === "killerLine") && i.message.includes("overused creative shorthand"),
+    );
+    expect(overusedIssues).toHaveLength(0);
+  });
+
+  it("does not block on overused-language warnings alone", () => {
+    const route = baseRoute({ name: "The Premium Reset", killerLine: "Unlock your everyday journey." });
+    const issues = validateRouteQuality([route]);
+    const errors = issues.filter((i) => i.severity === "error" && i.message.includes("overused creative shorthand"));
+    expect(errors).toHaveLength(0);
+  });
+
+  it("includes a concrete repair hint pointing to the brief, not category language", () => {
+    const route = baseRoute({ name: "The Elevated Sprint" });
+    const issues = validateRouteQuality([route]);
+    const warning = issues.find((i) => i.field === "name" && i.severity === "warning" && i.message.includes("overused"));
+    expect(warning?.message).toMatch(/brief's brand voice/i);
+  });
+});
+
 describe("hasBlockingRouteQualityIssues", () => {
   it("returns true when any error-severity issue exists", () => {
     const route = baseRoute({ name: "Effortless Elegance" });

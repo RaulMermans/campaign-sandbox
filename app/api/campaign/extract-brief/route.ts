@@ -41,8 +41,21 @@ export async function POST(request: Request): Promise<Response> {
   if (result.errorCode === "EMPTY_EXTRACTION") {
     return NextResponse.json(
       {
-        error: "No extractable text found. OCR is not supported in v1.",
+        error: "No extractable text found. OCR is not supported in v1. Try a selectable-text PDF or paste the brief manually.",
         code: "EMPTY_EXTRACTION",
+        warnings: result.warnings,
+        fileName: result.fileName,
+        fileType: result.fileType,
+      },
+      { status: 422 },
+    );
+  }
+
+  if (result.errorCode === "EXTRACTION_FAILED") {
+    return NextResponse.json(
+      {
+        error: "PDF extraction failed in this environment. Try PPTX/TXT or paste the brief manually.",
+        code: "EXTRACTION_FAILED",
         warnings: result.warnings,
         fileName: result.fileName,
         fileType: result.fileType,

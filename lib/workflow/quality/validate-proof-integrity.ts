@@ -7,6 +7,7 @@ import type {
   NormalizedCampaignBrief,
   CampaignRoute,
   CampaignExecutionPlan,
+  PremortemReview,
 } from "@/lib/schemas/campaign";
 
 export type ProofIntegrityIssue = {
@@ -34,6 +35,10 @@ const SAFE_QUALIFIERS = [
   /\bconceptual\b/i,
   /\bif provided\b/i,
   /\bwhen available\b/i,
+  // Safety-caveat framing — e.g. "must not be presented as real customer
+  // research" — warns against treating synthetic data as real evidence. This
+  // is the opposite of an unsupported proof claim and must not be flagged.
+  /\breal (?:customer )?research\b/i,
 ];
 
 const BRIEF_PROOF_SIGNALS = [
@@ -91,8 +96,9 @@ export function validateProofIntegrity(input: {
   normalizedBrief: NormalizedCampaignBrief;
   routes?: CampaignRoute[];
   executionPlan?: CampaignExecutionPlan;
+  premortemReview?: PremortemReview;
 }): ProofIntegrityIssue[] {
-  const { normalizedBrief, routes, executionPlan } = input;
+  const { normalizedBrief, routes, executionPlan, premortemReview } = input;
   const briefHasProof = briefProvidesProof(normalizedBrief);
 
   // If the brief explicitly provides proof, no issues
@@ -110,6 +116,43 @@ export function validateProofIntegrity(input: {
     }
     for (const asset of route.assetIdeas) {
       issues.push(...checkText(asset, `routes[${route.id}].assetIdeas`));
+    }
+  }
+
+  // Check pre-mortem review — risk and mitigation language can just as easily
+  // assert unsupported customer proof exists ("mitigate by featuring real
+  // customer testimonials") as the routes or execution plan can.
+  if (premortemReview) {
+    issues.push(...checkText(premortemReview.summary, "premortemReview.summary"));
+
+    for (const entry of premortemReview.routeRisks) {
+      for (const risk of entry.risks) {
+        issues.push(...checkText(risk, `premortemReview.routeRisks[${entry.routeId}].risks`));
+      }
+      for (const mitigation of entry.mitigations) {
+        issues.push(
+          ...checkText(mitigation, `premortemReview.routeRisks[${entry.routeId}].mitigations`),
+        );
+      }
+    }
+
+    for (const risk of premortemReview.overallRisks) {
+      issues.push(...checkText(risk, "premortemReview.overallRisks"));
+    }
+    for (const warning of premortemReview.decisionWarnings) {
+      issues.push(...checkText(warning, "premortemReview.decisionWarnings"));
+    }
+    for (const failure of premortemReview.topFailureRisks) {
+      issues.push(...checkText(failure.risk, "premortemReview.topFailureRisks[].risk"));
+      issues.push(
+        ...checkText(failure.whyItHappens, "premortemReview.topFailureRisks[].whyItHappens"),
+      );
+      issues.push(
+        ...checkText(failure.earlyWarningSign, "premortemReview.topFailureRisks[].earlyWarningSign"),
+      );
+      issues.push(
+        ...checkText(failure.mitigation, "premortemReview.topFailureRisks[].mitigation"),
+      );
     }
   }
 

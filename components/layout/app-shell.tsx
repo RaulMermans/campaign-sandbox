@@ -5,6 +5,7 @@ interface AppShellProps {
   onNewRun?: () => void;
   hasExecutionPlan?: boolean;
   onExport?: () => void;
+  onOpenLibrary?: () => void;
   isRunning?: boolean;
   children: React.ReactNode;
 }
@@ -14,12 +15,24 @@ export function AppShell({
   onNewRun,
   hasExecutionPlan,
   onExport,
+  onOpenLibrary,
   isRunning,
   children,
 }: AppShellProps) {
   if (mode === "intake") {
     return (
       <main className="min-h-screen bg-stone-100 text-stone-950">
+        {onOpenLibrary ? (
+          <div className="mx-auto flex max-w-5xl justify-end px-5 pt-4 md:px-8">
+            <button
+              type="button"
+              onClick={onOpenLibrary}
+              className="rounded border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 hover:border-stone-400 hover:text-stone-900"
+            >
+              Run library
+            </button>
+          </div>
+        ) : null}
         {children}
       </main>
     );
@@ -37,6 +50,15 @@ export function AppShell({
             <span className="text-xs text-stone-500">Results workspace</span>
           )}
           <div className="ml-auto flex items-center gap-2">
+            {onOpenLibrary ? (
+              <button
+                type="button"
+                onClick={onOpenLibrary}
+                className="rounded border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 hover:border-stone-400 hover:text-stone-900"
+              >
+                Run library
+              </button>
+            ) : null}
             {hasExecutionPlan && onExport ? (
               <button
                 type="button"
