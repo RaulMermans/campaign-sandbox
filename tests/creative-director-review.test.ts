@@ -440,3 +440,80 @@ describe("creativeDirectorReviewStage – OpenAI mode with bad response", () => 
     ).rejects.toBeInstanceOf(LlmProviderError);
   });
 });
+
+// ---------------------------------------------------------------------------
+// OpenAI mode — unsupported proof language triggers repair retry, then throws
+// ---------------------------------------------------------------------------
+
+describe("creativeDirectorReviewStage – OpenAI mode with unsupported proof language", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("throws WorkflowValidationError when the review persistently contains unsupported customer proof language", async () => {
+    vi.stubEnv("CAMPAIGN_SANDBOX_LLM_PROVIDER", "openai");
+    vi.stubEnv("OPENAI_API_KEY", "sk-test-key-for-unit-test");
+
+    function makeRouteReview(routeId: string, routeName: string, idx: number) {
+      return {
+        routeId,
+        routeName,
+        originalityScore: 4,
+        ownabilityScore: 4,
+        culturalSharpnessScore: 4,
+        visualPotentialScore: 4,
+        conversionClarityScore: 4,
+        genericityRisk: "low" as const,
+        verdict: "keep" as const,
+        why: "Strong, specific work.",
+        whatFeelsGeneric: [],
+        whatFeelsOwnable: ["A specific detail."],
+        sharperNameOptions: ["A", "B", "C"],
+        sharperKillerLines: ["A", "B", "C"],
+        creativeDirectorNotes:
+          idx === 0
+            ? ["Feature real customer testimonials front and center."]
+            : ["Keep going."],
+      };
+    }
+
+    const reviewWithFakeProof = {
+      review: {
+        overallVerdict: "A verdict.",
+        strongestRouteId: MOCK_CAMPAIGN_ROUTES[0].id,
+        routeReviews: MOCK_CAMPAIGN_ROUTES.map((route, idx) =>
+          makeRouteReview(route.id, route.name, idx),
+        ),
+        crossRouteRecommendations: ["Recommendation one."],
+        routesToAvoidOrMerge: [],
+        finalRecommendation: "Pursue route one.",
+        caveat: "This is expert creative critique, not market research or audience validation.",
+      },
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify(reviewWithFakeProof),
+              },
+            },
+          ],
+          usage: { prompt_tokens: 20, completion_tokens: 10 },
+        }),
+        text: async () => "{}",
+      }),
+    );
+
+    // The model persistently returns the same unsupported proof language, even
+    // after the repair retry, so the stage throws after the retry is exhausted.
+    await expect(
+      creativeDirectorReviewStage(SAMPLE_INPUT),
+    ).rejects.toBeInstanceOf(WorkflowValidationError);
+  });
+});

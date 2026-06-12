@@ -11,6 +11,7 @@ import {
   LlmProviderError,
   LlmSchemaValidationError,
 } from "@/lib/llm/errors";
+import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
 import {
   normalizedBrief as MOCK_NORMALIZED_BRIEF,
   strategicTension as MOCK_STRATEGIC_TENSION,
@@ -286,5 +287,74 @@ describe("generateCampaignRoutesStage – OpenAI mode with bad response", () => 
     await expect(
       generateCampaignRoutesStage(SAMPLE_INPUT),
     ).rejects.toBeInstanceOf(LlmProviderError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// OpenAI mode — unsupported proof language triggers repair retry, then throws
+// ---------------------------------------------------------------------------
+
+describe("generateCampaignRoutesStage – OpenAI mode with unsupported proof language", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("throws WorkflowValidationError when routes persistently contain unsupported customer proof language", async () => {
+    vi.stubEnv("CAMPAIGN_SANDBOX_LLM_PROVIDER", "openai");
+    vi.stubEnv("OPENAI_API_KEY", "sk-test-key-for-unit-test");
+
+    const baseRoute = {
+      name: "The Second Address",
+      position: "A clear, ownable position.",
+      concept: "A simple concept rooted in the brief's tension.",
+      whyItWorks: "It fits the brand and audience tension.",
+      keyMessage: "A key message tied to the brief.",
+      tone: ["calm"],
+      channels: ["Instagram"],
+      activationIdeas: ["A specific activation idea"],
+      sampleCopy: ["Some campaign-safe copy"],
+      assetIdeas: ["A specific asset type"],
+      risks: ["A real production risk"],
+      enemy: "A specific category convention this route rejects.",
+      visualWorld: [
+        "tight environmental stills in stairwells and cafe windows",
+        "hands holding espresso cups, never posed",
+      ],
+      proofMechanism: "Backed by real customer testimonials collected at launch.",
+      channelFit: ["Instagram carousel"],
+      killerLine: "A sharp, specific killer line for this route.",
+      failureMode: "If execution is generic, the route disappears into the category.",
+    };
+
+    const routesWithFakeProof = [
+      { ...baseRoute, id: "route-safest", strategicRole: "safest" as const },
+      { ...baseRoute, id: "route-boldest", strategicRole: "boldest" as const },
+      { ...baseRoute, id: "route-conversion", strategicRole: "conversion" as const },
+    ];
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({ routes: routesWithFakeProof }),
+              },
+            },
+          ],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+        text: async () => "{}",
+      }),
+    );
+
+    // The model persistently returns the same unsupported proof language, even
+    // after the repair retry, so the stage throws after the retry is exhausted.
+    await expect(
+      generateCampaignRoutesStage(SAMPLE_INPUT),
+    ).rejects.toBeInstanceOf(WorkflowValidationError);
   });
 });

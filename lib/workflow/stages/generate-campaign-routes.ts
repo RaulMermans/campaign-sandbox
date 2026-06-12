@@ -20,6 +20,12 @@ import {
   hasBlockingRouteQualityIssues,
   type RouteQualityIssue,
 } from "@/lib/workflow/quality/validate-route-quality";
+import {
+  validateProofIntegrity,
+  hasBlockingProofIntegrityIssues,
+  type ProofIntegrityIssue,
+} from "@/lib/workflow/quality/validate-proof-integrity";
+import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
 
 const PROMPT_FILE = "generate_campaign_routes.md";
 const PROMPT_VERSION = "generate_campaign_routes.v1";
@@ -34,7 +40,10 @@ export interface GenerateCampaignRoutesResult {
 
 // --- Mock path ---
 
-function generateRoutesMock(runId: string): GenerateCampaignRoutesResult {
+function generateRoutesMock(
+  normalizedBrief: NormalizedCampaignBrief,
+  runId: string,
+): GenerateCampaignRoutesResult {
   const traceEvent = createTraceEvent({
     runId,
     stageId: "generate_campaign_routes",
@@ -51,6 +60,17 @@ function generateRoutesMock(runId: string): GenerateCampaignRoutesResult {
 
   // Validate the fixed mock against the wrapper schema so drift is caught immediately.
   const parsed = campaignRoutesOutputSchema.parse({ routes: MOCK_CAMPAIGN_ROUTES });
+
+  const proofIssues = validateProofIntegrity({ normalizedBrief, routes: parsed.routes });
+  if (hasBlockingProofIntegrityIssues(proofIssues)) {
+    throw new WorkflowValidationError(
+      "Mock campaign routes contain unsupported customer proof language.",
+      proofIssues
+        .filter((i) => i.severity === "error")
+        .map((i) => ({ path: [i.field], message: i.message })),
+    );
+  }
+
   return { routes: parsed.routes, traceEvent };
 }
 
@@ -59,20 +79,29 @@ function generateRoutesMock(runId: string): GenerateCampaignRoutesResult {
 function buildRepairPrompt(
   basePrompt: string,
   issues: RouteQualityIssue[],
+  proofIssues: ProofIntegrityIssue[] = [],
 ): string {
-  const issueList = issues
-    .map((i) => `- [${i.field}] ${i.message}`)
-    .join("\n");
+  const sections: string[] = [basePrompt, "", "## QUALITY REPAIR REQUIRED", ""];
 
-  return [
-    basePrompt,
-    "",
-    "## QUALITY REPAIR REQUIRED",
-    "",
-    "The previous output failed quality validation. Please regenerate routes fixing these issues:",
-    "",
-    issueList,
-    "",
+  if (issues.length > 0) {
+    sections.push(
+      "The previous output failed quality validation. Please regenerate routes fixing these issues:",
+      "",
+      issues.map((i) => `- [${i.field}] ${i.message}`).join("\n"),
+      "",
+    );
+  }
+
+  if (proofIssues.length > 0) {
+    sections.push(
+      "The previous output contained unsupported customer proof language. Please regenerate routes fixing these issues:",
+      "",
+      proofIssues.map((i) => `- [${i.field}] ${i.message}`).join("\n"),
+      "",
+    );
+  }
+
+  sections.push(
     "Rules:",
     "- Route names must be specific and ownable, not generic adjective+noun combinations.",
     "- Avoid overused category language in names and killer lines — words like 'elevated', 'effortless',",
@@ -83,7 +112,12 @@ function buildRepairPrompt(
     "- Visual world must include at least 2 entries with concrete sensory or production detail.",
     "- Proof mechanisms must not imply real customer testimonials unless the brief explicitly provides them.",
     "- Use 'testimonial-style creative' or 'customer proof if available' for conceptual proof assets.",
-  ].join("\n");
+    "- Do NOT use 'survey-backed', 'proven', 'validated by customers', or 'endorsements confirming benefits'",
+    "  unless the brief provides that evidence. Do NOT state outcome claims like 'no crash', 'clear mental",
+    "  blocks', or 'helps you regain your flow' as settled facts — reframe around the perceived experience.",
+  );
+
+  return sections.join("\n");
 }
 
 async function generateRoutesWithOpenAI(
@@ -108,9 +142,9 @@ async function generateRoutesWithOpenAI(
   let lastError: unknown;
   let qualityWarnings: RouteQualityIssue[] | undefined;
 
-  // Up to 3 attempts: 1 normal + 1 schema retry + 1 quality retry
+  // Up to 3 attempts: 1 normal + 1 schema retry + 1 quality/proof repair retry
   let prompt = basePrompt;
-  let qualityRetryDone = false;
+  let repairRetryDone = false;
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -125,13 +159,25 @@ async function generateRoutesWithOpenAI(
 
       // Quality gate: validate routes on first valid schema result
       const qualityIssues = validateRouteQuality(routes);
-      const hasBlocking = hasBlockingRouteQualityIssues(qualityIssues);
+      const hasBlockingQuality = hasBlockingRouteQualityIssues(qualityIssues);
 
-      if (hasBlocking && !qualityRetryDone) {
+      const proofIssues = validateProofIntegrity({ normalizedBrief, routes });
+      const hasBlockingProof = hasBlockingProofIntegrityIssues(proofIssues);
+
+      if ((hasBlockingQuality || hasBlockingProof) && !repairRetryDone) {
         // Retry once with a repair prompt
-        qualityRetryDone = true;
-        prompt = buildRepairPrompt(basePrompt, qualityIssues);
+        repairRetryDone = true;
+        prompt = buildRepairPrompt(basePrompt, qualityIssues, proofIssues);
         continue;
+      }
+
+      if (hasBlockingProof) {
+        throw new WorkflowValidationError(
+          "Campaign routes contain unsupported customer proof language after retry.",
+          proofIssues
+            .filter((i) => i.severity === "error")
+            .map((i) => ({ path: [i.field], message: i.message })),
+        );
       }
 
       const durationMs = Date.now() - startMs;
@@ -147,7 +193,7 @@ async function generateRoutesWithOpenAI(
         message:
           attempt === 1
             ? "Campaign routes generated via OpenAI."
-            : qualityRetryDone && !hasBlocking
+            : repairRetryDone && !hasBlockingQuality && !hasBlockingProof
               ? "Campaign routes generated via OpenAI after quality repair retry."
               : "Campaign routes generated via OpenAI after one retry.",
         outputSchema: "CampaignRoute[]",
@@ -196,7 +242,7 @@ export async function generateCampaignRoutesStage(input: {
 }): Promise<GenerateCampaignRoutesResult> {
   const runId = input.runId ?? DEFAULT_RUN_ID;
   if (env.provider === "mock") {
-    return generateRoutesMock(runId);
+    return generateRoutesMock(input.normalizedBrief, runId);
   }
   return generateRoutesWithOpenAI(input.normalizedBrief, input.strategicTension, runId);
 }

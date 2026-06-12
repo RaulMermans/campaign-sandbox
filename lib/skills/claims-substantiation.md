@@ -3,6 +3,8 @@ name: claims-substantiation
 description: Prompt injection skill for execution plan generation. Flags claims requiring legal review before the plan reaches production or client approval.
 stages:
   - generate_execution_plan
+  - generate_campaign_routes
+  - creative_director_review
 ---
 
 # Claims Substantiation Skill
@@ -31,3 +33,11 @@ For each flagged claim, include:
 - What substantiation would be required before it can be published
 
 Don't clear claims — flag them for review. The role of this checklist is to surface, not to approve.
+
+## Phrases to avoid in execution copy unless the brief provides proof
+
+Do not write the following as if they are settled facts: "verified testimonials," "real customer testimonials," "customer names and photos," "user-generated content," "survey-backed," "proven," "validated by customers," "endorsements confirming benefits," "helps you regain your flow," "clear mental blocks," "no crash."
+
+Use safer alternatives instead: "testimonial-style creative," "scenario-based proof," "influencer-style demonstration if contracted and approved," "customer proof if available," "validated testimonials if available," "claims requiring substantiation before publication," "positioned around perceived focus and refreshment," "supports an afternoon reset ritual."
+
+Main execution copy should not sound final or already substantiated by default — that is the legal checklist's job, not the plan's.

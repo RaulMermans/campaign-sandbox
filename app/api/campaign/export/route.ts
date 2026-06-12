@@ -43,6 +43,7 @@ export async function POST(request: Request): Promise<Response> {
     routes: input.routes,
     executionPlan: input.executionPlan,
     premortemReview: input.premortemReview,
+    creativeDirectorReview: input.creativeDirectorReview,
   });
   if (hasBlockingProofIntegrityIssues(proofIssues)) {
     return NextResponse.json(

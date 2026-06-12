@@ -18,6 +18,10 @@ import { env } from "@/lib/env";
 import { generateJson } from "@/lib/llm/generate-json";
 import { LlmJsonParseError, LlmSchemaValidationError } from "@/lib/llm/errors";
 import { validateCreativeDirectorReviewCoverage } from "@/lib/workflow/validate-creative-director-review";
+import {
+  validateProofIntegrity,
+  hasBlockingProofIntegrityIssues,
+} from "@/lib/workflow/quality/validate-proof-integrity";
 import { WorkflowValidationError } from "@/lib/workflow/workflow-errors";
 import { buildMockCreativeDirectorReview } from "@/lib/workflow/mock-campaign-run";
 
@@ -34,6 +38,7 @@ export interface CreativeDirectorReviewResult {
 // --- Mock path ---
 
 function creativeDirectorReviewMock(
+  normalizedBrief: NormalizedCampaignBrief,
   routes: CampaignRoute[],
   runId: string,
 ): CreativeDirectorReviewResult {
@@ -56,6 +61,16 @@ function creativeDirectorReviewMock(
   // Validate mock output against schema and coverage to catch fixture drift immediately.
   const parsed = creativeDirectorReviewOutputSchema.parse({ review });
   validateCreativeDirectorReviewCoverage({ review: parsed.review, routes });
+
+  const proofIssues = validateProofIntegrity({ normalizedBrief, creativeDirectorReview: parsed.review });
+  if (hasBlockingProofIntegrityIssues(proofIssues)) {
+    throw new WorkflowValidationError(
+      "Mock creative director review contains unsupported customer proof language.",
+      proofIssues
+        .filter((i) => i.severity === "error")
+        .map((i) => ({ path: [i.field], message: i.message })),
+    );
+  }
 
   return { review: parsed.review, traceEvent };
 }
@@ -85,14 +100,27 @@ async function creativeDirectorReviewWithOpenAI(
     JSON.stringify(routes, null, 2),
   ].join("\n");
 
+  const PROOF_REPAIR_INSTRUCTION = `
+IMPORTANT CORRECTION: The previous response contained unsupported customer proof language.
+Do not imply that real customer testimonials, user-generated content (UGC), customer names and photos,
+satisfied subscriber quotes, or verified customer reviews exist unless the brief explicitly provides them —
+including in creative director notes, sharper killer lines, cross-route recommendations, and the final
+recommendation. Do not state outcome claims like "proven," "no crash," or "clear mental blocks" as settled
+facts. Replace any such language with:
+- "testimonial-style creative" instead of "real customer testimonials"
+- "scenario-based creative" instead of "user-generated content"
+- "customer proof if available" or "claims requiring substantiation before publication" as qualifiers
+Re-generate the full creative director review JSON with this correction applied.`;
+
   const startMs = Date.now();
   let lastError: unknown;
+  let currentPrompt = prompt;
 
-  // One retry on JSON parse, schema validation, or coverage failure.
+  // One retry on JSON parse, schema validation, coverage, or proof-integrity failure.
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const result = await generateJson({
-        prompt,
+        prompt: currentPrompt,
         schema: creativeDirectorReviewOutputSchema,
         model: env.openaiModel,
         timeoutMs: OPENAI_TIMEOUT_MS,
@@ -103,6 +131,25 @@ async function creativeDirectorReviewWithOpenAI(
         review: result.data.review,
         routes,
       });
+
+      const proofIssues = validateProofIntegrity({
+        normalizedBrief,
+        creativeDirectorReview: result.data.review,
+      });
+
+      if (hasBlockingProofIntegrityIssues(proofIssues) && attempt === 1) {
+        currentPrompt = [currentPrompt, PROOF_REPAIR_INSTRUCTION].join("\n");
+        continue;
+      }
+
+      if (hasBlockingProofIntegrityIssues(proofIssues) && attempt === 2) {
+        throw new WorkflowValidationError(
+          "Creative director review contains unsupported customer proof language after retry.",
+          proofIssues
+            .filter((i) => i.severity === "error")
+            .map((i) => ({ path: [i.field], message: i.message })),
+        );
+      }
 
       const durationMs = Date.now() - startMs;
       const traceEvent = createTraceEvent({
@@ -133,7 +180,7 @@ async function creativeDirectorReviewWithOpenAI(
       if (!isRetryable || attempt === 2) {
         break;
       }
-      // Retry once on JSON, schema, or coverage failure; do not retry on provider/network errors.
+      // Retry once on JSON, schema, coverage, or proof-integrity failure; do not retry on provider/network errors.
     }
   }
 
@@ -167,7 +214,7 @@ export async function creativeDirectorReviewStage(input: {
 }): Promise<CreativeDirectorReviewResult> {
   const runId = input.runId ?? DEFAULT_RUN_ID;
   if (env.provider === "mock") {
-    return creativeDirectorReviewMock(input.routes, runId);
+    return creativeDirectorReviewMock(input.normalizedBrief, input.routes, runId);
   }
   return creativeDirectorReviewWithOpenAI(
     input.normalizedBrief,

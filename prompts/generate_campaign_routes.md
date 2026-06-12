@@ -25,6 +25,8 @@ Return JSON only. No markdown. No explanation. No text before or after the JSON 
 - failureMode must name the specific way this route goes wrong if execution is lazy or underfunded.
 - Do not expose raw model reasoning. Return the JSON object only.
 - proofMechanism must NOT imply that real customer testimonials, user-generated content, or satisfied subscriber quotes exist unless the brief explicitly provides them. If the brief does not mention existing customer evidence, use language like "testimonial-style creative," "scenario-based creative," or "customer proof if available." Never write "real customer testimonials" or "user-generated content" as if they already exist.
+- Do NOT use "survey-backed," "proven," "validated by customers," or "endorsements confirming benefits" anywhere in a route unless the brief provides that evidence. Use "claims requiring substantiation before publication" or "influencer-style demonstration if contracted and approved" instead.
+- Do NOT state outcome claims like "no crash," "clear mental blocks," or "helps you regain your flow" as settled facts in concept, keyMessage, sampleCopy, or killerLine. Reframe around the perceived experience, e.g. "positioned around perceived focus and refreshment" or "supports an afternoon reset ritual."
 - Route names must be specific, concrete, and ownable. They must NOT be adjective + generic category noun (e.g., "Effortless Elegance," "Urban Escape," "Calm Curation," "Premium Ritual," "Elevated Evening"). Use names rooted in a real tension, behavior, or moment from the brief.
 
 ## Output schema
@@ -64,6 +66,8 @@ All string arrays must have at least one item. Do not add extra fields.
 <!-- skill:cultural-strategy -->
 
 <!-- skill:creative-territory -->
+
+<!-- skill:claims-substantiation -->
 
 ## Inputs
 
