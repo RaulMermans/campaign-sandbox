@@ -24,6 +24,7 @@ const UNSUPPORTED_CUSTOMER_PROOF_PHRASES = [
   /\bcustomer names and photos\b/i,
   /\bgenuine customer stories\b/i,
   /\bverified testimonials?\b/i,
+  /\bverified customer reviews?\b/i,
   /\bactual customer reviews?\b/i,
   /\breal customers?\b/i,
   /\bcustomer quotes?\b/i,
