@@ -89,4 +89,6 @@ Never imply legal approval. Flag for review, never clear.
 - Do not include confidence intervals or market predictions.
 - assumptions must include a clear statement that synthetic audience reactions are planning hypotheses, not validated customer evidence.
 - Do NOT imply that real customer testimonials, user-generated content, satisfied subscriber quotes, or verified customer reviews exist unless the brief explicitly provides them. If the brief does not mention existing customer proof, use "testimonial-style creative," "scenario-based creative," or "customer proof if available" instead. Never write "real customers" or "user-generated content" as deliverables unless the brief confirms they exist.
+- Do NOT use "survey-backed," "proven," "validated by customers," or "endorsements confirming benefits" unless the brief provides that evidence. Use "claims requiring substantiation before publication" or "influencer-style demonstration if contracted and approved" instead.
+- Do NOT state outcome claims like "no crash," "clear mental blocks," or "helps you regain your flow" as settled facts. Reframe around the perceived experience, e.g. "positioned around perceived focus and refreshment" or "supports an afternoon reset ritual."
 - Output must be a single valid JSON object. No trailing commas. No comments.

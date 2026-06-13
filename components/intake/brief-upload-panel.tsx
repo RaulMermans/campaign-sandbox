@@ -53,6 +53,8 @@ export function BriefUploadPanel({
           UNSUPPORTED_FILE_TYPE: "Unsupported file type. Upload PDF, PPTX, or TXT.",
           EMPTY_EXTRACTION:
             "No extractable text found. OCR is not supported in v1. Try a selectable-text PDF or paste the brief manually.",
+          EXTRACTION_FAILED:
+            "PDF extraction failed in this environment. Try PPTX/TXT or paste the brief manually.",
         };
         const message =
           (code && friendlyMessages[code]) ??
@@ -133,7 +135,7 @@ export function BriefUploadPanel({
         ) : (
           <>
             <span className="text-sm font-medium text-stone-700">
-              Upload PDF, PPTX, or TXT
+              Upload PDF, PPTX, or TXT - PDF support may vary by file
             </span>
             <span className="text-xs text-stone-400">
               Click to browse or drag and drop · Max 15 MB

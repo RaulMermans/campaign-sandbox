@@ -10,7 +10,8 @@ pnpm install
 pnpm dev
 ```
 
-Open `http://localhost:3000`. No environment variables are required for mock mode.
+Copy `.env.example` to `.env.local`. For local development only, the password
+gate may be bypassed with `DISABLE_INTERNAL_PASSWORD=true`.
 
 ## Local verification before deploy
 
@@ -28,7 +29,7 @@ Both must pass clean before deploying.
 1. Push this repository to GitHub.
 2. Import the repository in Vercel.
 3. Vercel auto-detects Next.js. `vercel.json` provides explicit build and install commands.
-4. Deploy without any environment variables to run in mock mode.
+4. Configure the internal password variables before deploying.
 
 ### Environment variables on Vercel
 
@@ -39,15 +40,20 @@ Set these in **Vercel → Project → Settings → Environment Variables**.
 | `CAMPAIGN_SANDBOX_LLM_PROVIDER` | No | `mock` | Set to `openai` to enable real brief normalization. |
 | `OPENAI_API_KEY` | Only when provider is `openai` | — | Your OpenAI API key. Server-side only. Never expose to the browser. |
 | `OPENAI_MODEL` | No | `gpt-4.1-mini` | OpenAI model override. |
+| `INTERNAL_APP_PASSWORD` | Yes for deployments | — | Shared internal access password. Server-side only. |
+| `DISABLE_INTERNAL_PASSWORD` | Yes for deployments | `false` | Must be `false` in production. The bypass is ignored when `NODE_ENV=production`. |
 
-### Default mock deployment (no API keys needed)
+### Default protected mock deployment
 
-Deploy without setting any environment variables. The app runs fully in mock mode:
+Set:
 
-- Brief input works.
-- Mock normalized brief, routes, simulations, scores, and execution plan are returned when a route is selected.
-- No OpenAI calls are made.
-- No secrets are required.
+```env
+CAMPAIGN_SANDBOX_LLM_PROVIDER=mock
+INTERNAL_APP_PASSWORD=replace_with_a_strong_shared_password
+DISABLE_INTERNAL_PASSWORD=false
+```
+
+No OpenAI key is required in mock mode, but the deployed app remains gated.
 
 ### How the homepage works
 
@@ -59,7 +65,9 @@ Set both variables in Vercel:
 
 ```
 CAMPAIGN_SANDBOX_LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
+OPENAI_API_KEY=your_server_side_openai_key_here
+INTERNAL_APP_PASSWORD=replace_with_a_strong_shared_password
+DISABLE_INTERNAL_PASSWORD=false
 ```
 
 With this configuration:
@@ -126,14 +134,18 @@ pnpm test:real-chain
 
 ```
 CAMPAIGN_SANDBOX_LLM_PROVIDER=mock
+INTERNAL_APP_PASSWORD=replace_with_a_strong_shared_password
+DISABLE_INTERNAL_PASSWORD=false
 ```
 
 **Private real-provider testing:**
 
 ```
 CAMPAIGN_SANDBOX_LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
+OPENAI_API_KEY=your_server_side_openai_key_here
 OPENAI_MODEL=gpt-4.1-mini
+INTERNAL_APP_PASSWORD=replace_with_a_strong_shared_password
+DISABLE_INTERNAL_PASSWORD=false
 ```
 
 Do not use `NEXT_PUBLIC_` prefix for any of these variables. They are server-side only.
@@ -149,10 +161,10 @@ Do not use `NEXT_PUBLIC_` prefix for any of these variables. They are server-sid
 - **Comparison is decision support, not a prediction.** The `recommendedRouteId` is a scoring-based suggestion. Human selection is required before generating an execution plan.
 - **Human selection is explicit.** No execution plan is generated automatically. The user must click a route selection button and then click "Generate execution plan." The system recommendation is shown as guidance only.
 - **Execution plan generation is server-side only.** `POST /api/campaign/execution-plan` accepts a completed run plus `selectedRouteId`. No client-side LLM calls. No API keys exposed to the browser.
-- **Export is deterministic Markdown/HTML only.** `POST /api/campaign/export` generates a `CampaignReport` including Decision Summary, risk taxonomy, and route simulation summaries. No PDF, no LLM, no persistence.
-- **No database, auth, or persistence.** Campaign runs and execution plans are held in React state only. Refreshing the page clears them.
-- **No PDF export in v1.** The export artifact boundary is a placeholder.
-- **No billing, no multi-tenant auth.** V1 is a demo-quality tool.
+- **Export is deterministic Markdown/HTML/PPTX.** `POST /api/campaign/export` generates a `CampaignReport` including Decision Summary, risk taxonomy, and route simulation summaries. No PDF, no LLM, no server-side persistence.
+- **No account system or database.** A shared internal password gate limits deployed access. Saved runs remain browser-local.
+- **No PDF export in v1.** Markdown, standalone HTML, and a PPTX route deck are available.
+- **No billing, teams, OAuth, or multi-tenant authentication.** The shared password gate is basic internal access control, not a user identity system.
 
 ## What is and is not server-side
 
@@ -197,8 +209,11 @@ Client-safe (no secrets):
 - `lib/traces/` — trace event factory
 - All components in `components/`
 
-## Current limitations
+## Password gate behavior
 
-- Human selection stores chosen route in React state only — no persistence across page reloads.
-- No PDF export in v1. Export is Markdown/HTML only.
-- No database, auth, or billing in v1.
+- All app pages except `/access` require a valid `campaign_sandbox_access` cookie.
+- Unauthorized `/api/campaign/*` requests return `401`.
+- The cookie is `httpOnly`, `sameSite=lax`, secure in production, and expires after seven days.
+- Missing `INTERNAL_APP_PASSWORD` fails closed.
+- `DISABLE_INTERNAL_PASSWORD=true` is accepted only outside production.
+- This is a shared internal gate, not accounts, roles, or identity management.
