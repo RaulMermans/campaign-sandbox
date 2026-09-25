@@ -49,3 +49,6 @@ local-runs*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local agent settings
+.claude/settings.json
